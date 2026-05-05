@@ -1,0 +1,35 @@
+TurboFrame(id: "editor") {
+  Wrapper(
+    data: {
+      controller: "module-editor",
+      "module-editor-module-id-value": @page_module.id,
+      "module-editor-data-function-id-value": @page_module.data_function_id,
+      "module-editor-render-function-id-value": @page_module.render_function_id,
+      "module-editor-data-source-value": @page_module.data_function.source,
+      "module-editor-render-source-value": @page_module.render_function.source,
+      "module-editor-render-language-value": @page_module.render_function.language,
+      "module-editor-config-value": @page_module.config.to_json
+    }
+  ) {
+    Header(size: 4) { text "Module ##{@page_module.id}" }
+
+    Menu(attached: "top", tabular: true) {
+      MenuItem(class: "item", data: { "module-editor-target": "tab", tab: "data", action: "click->module-editor#switchTab" }) { text "Data" }
+      MenuItem(class: "active item", data: { "module-editor-target": "tab", tab: "render", action: "click->module-editor#switchTab" }) { text "Render" }
+      MenuItem(class: "item", data: { "module-editor-target": "tab", tab: "config", action: "click->module-editor#switchTab" }) { text "Config" }
+    }
+
+    Wrapper(
+      data: { controller: "monaco-editor", "monaco-editor-language": "javascript" },
+      style: "height: 60vh;"
+    ) {
+      Wrapper(data: { "monaco-editor-target": "container", "module-editor-target": "editorContainer" }, style: "height: calc(100% - 24px);")
+      Wrapper(data: { "monaco-editor-target": "status" }, style: "height: 24px; background: #1e1e1e; color: #fff; font-size: 12px; padding: 2px 8px;")
+    }
+
+    Wrapper(style: "margin-top: 1em;") {
+      Button(color: "blue", data: { action: "module-editor#hotSwap" }) { text "Hot Swap" }
+      Button(color: "green", data: { action: "module-editor#save" }) { text "Save" }
+    }
+  }
+}

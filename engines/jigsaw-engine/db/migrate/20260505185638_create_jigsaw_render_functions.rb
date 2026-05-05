@@ -1,0 +1,15 @@
+class CreateJigsawRenderFunctions < ActiveRecord::Migration[8.1]
+  def change
+    create_table :jigsaw_render_functions do |t|
+      t.string :name, null: false
+      t.string :language, null: false, default: "javascript"
+      t.text :source, null: false
+      t.text :compiled_source
+      t.string :compiled_digest
+
+      t.timestamps
+    end
+
+    add_index :jigsaw_render_functions, :name, unique: true
+  end
+end

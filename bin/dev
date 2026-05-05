@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+system "docker compose up -d"
+
+exec "bundle", "exec", "falcon", "serve", "-b", "http://localhost:3000", *ARGV

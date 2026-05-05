@@ -1,0 +1,248 @@
+html, body {
+  height: 100%;
+}
+
+[data-controller="layout-editor"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-page {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  grid-template-areas: "center output";
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-page.full-width {
+  grid-template-columns: 1fr;
+  grid-template-areas: "center";
+}
+
+.editor-page.full-width .editor-output {
+  display: none;
+}
+
+.editor-center {
+  grid-area: center;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "col-controls ."
+    "main row-controls";
+  gap: 0;
+  overflow: auto;
+}
+
+.editor-output {
+  grid-area: output;
+  padding: 12px;
+  border-left: 1px solid #ddd;
+  overflow: auto;
+}
+
+.panel-divider {
+  border-top: 1px solid #ddd;
+  margin: 16px 0;
+}
+
+.code-output {
+  font-size: 12px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 0 0 12px 0;
+}
+
+/* Sidebar fields (now in right panel) */
+.sidebar-field {
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-field label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #555;
+}
+
+.sidebar-input-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.sidebar-input-row input {
+  width: 60px;
+  padding: 4px 6px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.unit-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  min-width: 40px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #f5f5f5;
+  cursor: pointer;
+  text-align: center;
+}
+
+.unit-btn:hover {
+  background: #e8e8e8;
+}
+
+/* Track controls */
+.track-controls--col {
+  grid-area: col-controls;
+  display: grid;
+}
+
+.track-controls--row {
+  grid-area: row-controls;
+  display: grid;
+}
+
+.track-control {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.track-controls--row .track-control {
+  flex-direction: column;
+}
+
+.track-controls--col .track-control {
+  flex-direction: row;
+}
+
+.track-value-input {
+  width: 36px;
+  padding: 2px 4px;
+  font-size: 11px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.track-value-input:disabled {
+  background: #eee;
+  color: #999;
+}
+
+.track-unit-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #f5f5f5;
+  cursor: pointer;
+  min-width: 32px;
+  text-align: center;
+}
+
+.track-unit-btn:hover {
+  background: #e8e8e8;
+}
+
+/* Preview area */
+.preview-main {
+  grid-area: main;
+  min-height: 300px;
+}
+
+
+.preview-cell {
+  position: relative;
+  min-height: 60px;
+}
+
+.cell-number {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: bold;
+  opacity: 0.6;
+  z-index: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.area-name-input {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 12px);
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+  border: 1px dashed transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #333;
+  z-index: 1;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.area-name-input:hover {
+  border-color: #aaa;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.area-name-input:focus {
+  border-color: #4183c4;
+  background: rgba(255, 255, 255, 0.9);
+  outline: none;
+}
+
+.area-name-input::placeholder {
+  color: #bbb;
+}
+
+/* Module placeholder */
+.module-placeholder {
+  background: #e8e8e8;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #888;
+}
+
+/* Dashed grid overlay */
+.preview-grid {
+  position: relative;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.grid-overlay-cell {
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+}

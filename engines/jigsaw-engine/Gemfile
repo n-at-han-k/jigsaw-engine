@@ -1,0 +1,8 @@
+source "https://rubygems.org"
+
+# Specify your gem's dependencies in jigsaw_engine.gemspec.
+gemspec
+
+gem "puma"
+gem "pg"
+gem "propshaft"
