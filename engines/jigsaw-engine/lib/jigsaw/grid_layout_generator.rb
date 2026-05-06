@@ -31,10 +31,17 @@ module Jigsaw
       flow = auto_flow
       props["grid-auto-flow"] = flow if flow
 
-      props["justify-content"] = @config["justifyContent"] if @config["justifyContent"].present? && @config["justifyContent"] != "stretch"
-      props["align-content"] = @config["alignContent"] if @config["alignContent"].present? && @config["alignContent"] != "stretch"
-      props["justify-items"] = @config["justifyItems"] if @config["justifyItems"].present? && @config["justifyItems"] != "stretch"
-      props["align-items"] = @config["alignItems"] if @config["alignItems"].present? && @config["alignItems"] != "stretch"
+      container = @config["containerAlignment"]
+      if container.present?
+        props["justify-content"] = container["horizontal"] if container["horizontal"].present? && container["horizontal"] != "stretch"
+        props["align-content"] = container["vertical"] if container["vertical"].present? && container["vertical"] != "stretch"
+      end
+
+      children = @config["childrenAlignment"]
+      if children.present?
+        props["justify-items"] = children["horizontal"] if children["horizontal"].present? && children["horizontal"] != "stretch"
+        props["align-items"] = children["vertical"] if children["vertical"].present? && children["vertical"] != "stretch"
+      end
 
       body = props.map { |k, v| "  #{k}: #{v};" }.join("\n")
       "#{selector} {\n#{body}\n}"
@@ -42,7 +49,7 @@ module Jigsaw
 
     def auto_flow
       direction = @config["direction"]
-      dense = @config["dense"]
+      dense = @config["emptySpace"] == "fill"
 
       if direction == "column" && dense
         "column dense"
@@ -77,7 +84,6 @@ module Jigsaw
       if tracks.blank?
         "1fr"
       elsif tracks.is_a?(Hash)
-        # Repeat object: { "repeat" => "auto-fit"|"auto-fill", "value" => 1, "unit" => "fr" }
         size = track_value(tracks)
         "repeat(#{tracks['repeat']}, #{size})"
       else

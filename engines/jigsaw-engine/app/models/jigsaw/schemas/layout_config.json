@@ -47,13 +47,61 @@
         { "$ref": "#/$defs/trackRepeat" }
       ]
     },
-    "containerAlignment": {
-      "type": "string",
-      "enum": ["stretch", "start", "end", "center", "space-between", "space-around", "space-evenly"]
+    "gridContainerAlignment": {
+      "type": "object",
+      "properties": {
+        "horizontal": {
+          "type": "string",
+          "enum": ["stretch", "start", "end", "center", "space-between", "space-around", "space-evenly"]
+        },
+        "vertical": {
+          "type": "string",
+          "enum": ["stretch", "start", "end", "center", "space-between", "space-around", "space-evenly"]
+        }
+      },
+      "required": ["horizontal", "vertical"],
+      "additionalProperties": false
     },
-    "itemAlignment": {
-      "type": "string",
-      "enum": ["stretch", "start", "end", "center"]
+    "gridChildrenAlignment": {
+      "type": "object",
+      "properties": {
+        "horizontal": {
+          "type": "string",
+          "enum": ["stretch", "start", "end", "center"]
+        },
+        "vertical": {
+          "type": "string",
+          "enum": ["stretch", "start", "end", "center"]
+        }
+      },
+      "required": ["horizontal", "vertical"],
+      "additionalProperties": false
+    },
+    "flexContainerAlignment": {
+      "type": "object",
+      "properties": {
+        "mainAxis": {
+          "type": "string",
+          "enum": ["flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"]
+        },
+        "crossAxis": {
+          "type": "string",
+          "enum": ["stretch", "flex-start", "flex-end", "center", "baseline"]
+        }
+      },
+      "required": ["mainAxis", "crossAxis"],
+      "additionalProperties": false
+    },
+    "flexChild": {
+      "type": "object",
+      "properties": {
+        "grow": { "type": "number" },
+        "shrink": { "type": "number" },
+        "basis": { "type": "string" },
+        "margin": { "type": "boolean" }
+      },
+      "required": ["grow", "shrink", "basis", "margin"],
+      "additionalProperties": false
     },
     "gridChildPlacement": {
       "type": "object",
@@ -66,17 +114,6 @@
           "type": "string",
           "description": "grid-column value, e.g. '1 / -1', '1 / 3'"
         }
-      },
-      "additionalProperties": false
-    },
-    "flexChildPlacement": {
-      "type": "object",
-      "properties": {
-        "flexGrow": { "type": "number" },
-        "flexShrink": { "type": "number" },
-        "flexBasis": { "type": "string" },
-        "alignSelf": { "$ref": "#/$defs/itemAlignment" },
-        "order": { "type": "integer" }
       },
       "additionalProperties": false
     },
@@ -102,30 +139,28 @@
           },
           "description": "2D array of area names (grid-template-areas). Use '.' for empty cells."
         },
+        "gridAreasMode": {
+          "type": "string",
+          "enum": ["names", "line numbers"],
+          "description": "Whether grid areas use named areas or line-number-based placements"
+        },
         "direction": {
           "type": "string",
           "enum": ["row", "column"],
           "description": "grid-auto-flow direction"
         },
-        "dense": {
-          "type": "boolean",
-          "description": "grid-auto-flow: dense (fill empty spaces)"
+        "emptySpace": {
+          "type": "string",
+          "enum": ["dont-fill", "fill"],
+          "description": "Whether to fill empty grid cells (maps to grid-auto-flow: dense)"
         },
-        "justifyContent": {
-          "$ref": "#/$defs/containerAlignment",
-          "description": "Container horizontal alignment (justify-content)"
+        "containerAlignment": {
+          "$ref": "#/$defs/gridContainerAlignment",
+          "description": "Container alignment (justify-content / align-content)"
         },
-        "alignContent": {
-          "$ref": "#/$defs/containerAlignment",
-          "description": "Container vertical alignment (align-content)"
-        },
-        "justifyItems": {
-          "$ref": "#/$defs/itemAlignment",
-          "description": "Children horizontal alignment (justify-items)"
-        },
-        "alignItems": {
-          "$ref": "#/$defs/itemAlignment",
-          "description": "Children vertical alignment (align-items)"
+        "childrenAlignment": {
+          "$ref": "#/$defs/gridChildrenAlignment",
+          "description": "Children alignment (justify-items / align-items)"
         },
         "childPlacements": {
           "type": "array",
@@ -152,29 +187,19 @@
           "type": "string",
           "enum": ["nowrap", "wrap", "wrap-reverse"]
         },
-        "rowGap": { "type": "number", "minimum": 0 },
-        "rowGapUnit": { "$ref": "#/$defs/gapUnit" },
-        "colGap": { "type": "number", "minimum": 0 },
-        "colGapUnit": { "$ref": "#/$defs/gapUnit" },
-        "justifyContent": {
-          "$ref": "#/$defs/containerAlignment",
-          "description": "Main axis alignment (justify-content)"
+        "gap": { "type": "number", "minimum": 0 },
+        "gapUnit": { "$ref": "#/$defs/gapUnit" },
+        "containerAlignment": {
+          "$ref": "#/$defs/flexContainerAlignment",
+          "description": "Container alignment (justify-content / align-items)"
         },
-        "alignItems": {
-          "$ref": "#/$defs/itemAlignment",
-          "description": "Cross axis alignment (align-items)"
-        },
-        "alignContent": {
-          "$ref": "#/$defs/containerAlignment",
-          "description": "Multi-line cross axis alignment (align-content). Only applies when wrap is enabled."
-        },
-        "childPlacements": {
+        "children": {
           "type": "array",
-          "items": { "$ref": "#/$defs/flexChildPlacement" },
-          "description": "Per-child flex properties (grow, shrink, basis, align-self, order)"
+          "items": { "$ref": "#/$defs/flexChild" },
+          "description": "Per-child flex properties (grow, shrink, basis, margin)"
         }
       },
-      "required": ["type", "childrenCount", "direction", "rowGap", "rowGapUnit"],
+      "required": ["type", "childrenCount", "direction", "gap", "gapUnit"],
       "additionalProperties": false
     }
   }
