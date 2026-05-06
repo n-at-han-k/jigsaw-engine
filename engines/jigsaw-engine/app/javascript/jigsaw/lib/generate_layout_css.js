@@ -19,7 +19,7 @@ function generateGridCss(c) {
 
   const rows = c.rows
   const cols = c.columns
-  const gap = gapStr(c)
+  const gap = gridGapStr(c)
 
   let css = `.layout {\n  width: 100%;\n\n  display: grid;\n`
   css += `  grid-template-rows: ${trackListStr(rows)};\n`
@@ -29,8 +29,8 @@ function generateGridCss(c) {
   const flow = autoFlowStr(c)
   if (flow) css += `  grid-auto-flow: ${flow};\n`
 
-  css += containerAlignmentCss(c)
-  css += itemAlignmentCss(c)
+  css += gridContainerAlignmentCss(c)
+  css += gridChildrenAlignmentCss(c)
   css += `}`
 
   css += childPlacementCss(c)
@@ -40,7 +40,7 @@ function generateGridCss(c) {
 function generateGridCssWithAreas(c) {
   const rows = c.rows || []
   const cols = c.columns
-  const gap = gapStr(c)
+  const gap = gridGapStr(c)
 
   let rowLines
   if (Array.isArray(rows)) {
@@ -65,8 +65,8 @@ function generateGridCssWithAreas(c) {
   const flow = autoFlowStr(c)
   if (flow) css += `  grid-auto-flow: ${flow};\n`
 
-  css += containerAlignmentCss(c)
-  css += itemAlignmentCss(c)
+  css += gridContainerAlignmentCss(c)
+  css += gridChildrenAlignmentCss(c)
   css += `}\n`
 
   const uniqueAreas = [...new Set(c.areas.flat())].filter(a => a !== ".")
@@ -80,7 +80,7 @@ function generateGridCssWithAreas(c) {
 
 function autoFlowStr(c) {
   const direction = c.direction
-  const dense = c.dense
+  const dense = c.emptySpace === "fill"
 
   if (direction === "column" && dense) return "column dense"
   if (direction === "column") return "column"
@@ -88,24 +88,30 @@ function autoFlowStr(c) {
   return null
 }
 
-function containerAlignmentCss(c) {
+function gridContainerAlignmentCss(c) {
   let css = ""
-  if (c.justifyContent && c.justifyContent !== "stretch") {
-    css += `  justify-content: ${c.justifyContent};\n`
-  }
-  if (c.alignContent && c.alignContent !== "stretch") {
-    css += `  align-content: ${c.alignContent};\n`
+  const align = c.containerAlignment
+  if (align) {
+    if (align.horizontal && align.horizontal !== "stretch") {
+      css += `  justify-content: ${align.horizontal};\n`
+    }
+    if (align.vertical && align.vertical !== "stretch") {
+      css += `  align-content: ${align.vertical};\n`
+    }
   }
   return css
 }
 
-function itemAlignmentCss(c) {
+function gridChildrenAlignmentCss(c) {
   let css = ""
-  if (c.justifyItems && c.justifyItems !== "stretch") {
-    css += `  justify-items: ${c.justifyItems};\n`
-  }
-  if (c.alignItems && c.alignItems !== "stretch") {
-    css += `  align-items: ${c.alignItems};\n`
+  const align = c.childrenAlignment
+  if (align) {
+    if (align.horizontal && align.horizontal !== "stretch") {
+      css += `  justify-items: ${align.horizontal};\n`
+    }
+    if (align.vertical && align.vertical !== "stretch") {
+      css += `  align-items: ${align.vertical};\n`
+    }
   }
   return css
 }
@@ -178,59 +184,78 @@ function generateFlexCss(c) {
   if (c.wrap && c.wrap !== "nowrap") {
     css += `  flex-wrap: ${c.wrap};\n`
   }
-  if (c.justifyContent && c.justifyContent !== "start") {
-    css += `  justify-content: ${c.justifyContent};\n`
-  }
-  if (c.alignItems && c.alignItems !== "stretch") {
-    css += `  align-items: ${c.alignItems};\n`
-  }
-  if (c.alignContent && c.alignContent !== "stretch") {
-    css += `  align-content: ${c.alignContent};\n`
+
+  if (c.gap > 0) {
+    css += `  gap: ${c.gap}${c.gapUnit || "px"};\n`
   }
 
-  const rowGap = c.rowGap > 0 ? `${c.rowGap}${c.rowGapUnit || "px"}` : null
-  const colGap = c.colGap > 0 ? `${c.colGap}${c.colGapUnit || "px"}` : null
-
-  if (rowGap && colGap && rowGap === colGap) {
-    css += `  gap: ${rowGap};\n`
-  } else {
-    if (rowGap) css += `  row-gap: ${rowGap};\n`
-    if (colGap) css += `  column-gap: ${colGap};\n`
+  const align = c.containerAlignment
+  if (align) {
+    if (align.mainAxis && align.mainAxis !== "flex-start") {
+      css += `  justify-content: ${align.mainAxis};\n`
+    }
+    if (align.crossAxis && align.crossAxis !== "stretch") {
+      css += `  align-items: ${align.crossAxis};\n`
+    }
   }
 
   css += `}`
 
-  css += flexChildPlacementCss(c)
+  css += flexChildrenCss(c)
   return css
 }
 
-function flexChildPlacementCss(c) {
-  if (!c.childPlacements || !c.childPlacements.some(p => p && Object.keys(p).length > 0)) return ""
+function flexChildrenCss(c) {
+  if (!c.children || !c.children.some(ch => ch.grow !== 0 || ch.shrink !== 1 || ch.basis !== "auto" || ch.margin)) return ""
 
   let css = ""
-  c.childPlacements.forEach((placement, i) => {
-    if (!placement || Object.keys(placement).length === 0) return
+  const classMap = {}
+
+  for (const child of c.children) {
+    if (child.grow === 0 && child.shrink === 1 && child.basis === "auto" && !child.margin) continue
+
+    const className = flexChildClassName(child)
+    if (classMap[className]) continue
 
     let props = ""
-    if (placement.flexGrow != null) props += `  flex-grow: ${placement.flexGrow};\n`
-    if (placement.flexShrink != null) props += `  flex-shrink: ${placement.flexShrink};\n`
-    if (placement.flexBasis) props += `  flex-basis: ${placement.flexBasis};\n`
-    if (placement.alignSelf) props += `  align-self: ${placement.alignSelf};\n`
-    if (placement.order != null) props += `  order: ${placement.order};\n`
+    if (child.grow !== 0) props += `  flex-grow: ${child.grow};\n`
+    if (child.shrink !== 1) props += `  flex-shrink: ${child.shrink};\n`
+    if (child.basis && child.basis !== "auto") props += `  flex-basis: ${child.basis};\n`
+    if (child.margin) props += `  margin-left: auto;\n`
+
     if (props) {
-      css += `\n\n.layout > :nth-child(${i + 1}) {\n${props}}`
+      classMap[className] = props
     }
-  })
+  }
+
+  for (const [className, props] of Object.entries(classMap)) {
+    css += `\n\n.${className} {\n${props}}`
+  }
 
   return css
+}
+
+function flexChildClassName(child) {
+  if (child.margin) return "marginLeft"
+  if (child.grow !== 0) return `grow${child.grow}`
+  if (child.shrink !== 1) return `shrink${child.shrink}`
+  return `basis${child.basis}`
 }
 
 function generateFlexHtml(c) {
   const count = c.childrenCount || 3
-  const children = Array.from({ length: count }, (_, i) =>
-    `  <div>${i + 1}</div>`
-  ).join("\n")
-  return `<section class="layout">\n${children}\n</section>`
+  const children = c.children || []
+
+  const lines = Array.from({ length: count }, (_, i) => {
+    const child = children[i] || { grow: 0, shrink: 1, basis: "auto", margin: false }
+    if (child.grow !== 0 || child.shrink !== 1 || child.basis !== "auto" || child.margin) {
+      const cls = flexChildClassName(child)
+      return `  <div class="${cls}">${i + 1}</div>`
+    }
+    return `  <div>${i + 1}</div>`
+  }).join("\n")
+
+  return `<section class="layout">\n${lines}\n</section>`
 }
 
 // --- Helpers ---
@@ -245,7 +270,6 @@ function trackStr(track) {
 
 function trackListStr(tracks) {
   if (!tracks) return "1fr"
-  // Repeat object: { repeat: "auto-fit"|"auto-fill", value, unit }
   if (!Array.isArray(tracks)) {
     const size = trackStr(tracks)
     return `repeat(${tracks.repeat}, ${size})`
@@ -254,7 +278,7 @@ function trackListStr(tracks) {
   return tracks.map(t => trackStr(t)).join(" ")
 }
 
-function gapStr(c) {
+function gridGapStr(c) {
   const rowGap = `${c.rowGap}${c.rowGapUnit || "px"}`
   const colGap = `${c.colGap}${c.colGapUnit || "px"}`
   return rowGap === colGap ? rowGap : `${rowGap} ${colGap}`

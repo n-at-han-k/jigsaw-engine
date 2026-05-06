@@ -1,11 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 import { generateLayoutCss, generateLayoutHtml } from "jigsaw/lib/generate_layout_css"
 
-// Thin controller: reads DOM state into a config object, feeds it to the
-// generator lib, and applies the output. No layout logic lives here.
-
 export default class extends Controller {
-  static targets = ["preview", "cssOutput", "htmlOutput", "jsonOutput", "configHidden", "panel"]
+  static targets = ["preview", "cssOutput", "htmlOutput", "jsonOutput", "configHidden", "panel", "gridFields", "flexFields"]
 
   connect() {
     this.rebuild()
@@ -24,7 +21,6 @@ export default class extends Controller {
     }
   }
 
-  // Called on area name change (after blur) — safe to fully rebuild
   updateOutput() {
     this.rebuild()
   }
@@ -37,6 +33,45 @@ export default class extends Controller {
     this.rebuild()
   }
 
+  cycleRowsMode(event) {
+    const btn = event.currentTarget
+    const modes = (btn.dataset.units || "number,auto-fit,auto-fill").split(",")
+    const idx = modes.indexOf(btn.textContent.trim())
+    btn.textContent = modes[(idx + 1) % modes.length]
+    const rowCountInput = this.element.querySelector("#rowCount")
+    if (rowCountInput) {
+      rowCountInput.disabled = btn.textContent.trim() !== "number"
+    }
+    this.rebuild()
+  }
+
+  setTypeGrid() {
+    this._setType("grid")
+  }
+
+  setTypeFlex() {
+    this._setType("flex")
+  }
+
+  _setType(type) {
+    const gridBtn = this.element.querySelector("#typeGrid")
+    const flexBtn = this.element.querySelector("#typeFlex")
+
+    if (type === "grid") {
+      gridBtn.classList.add("active")
+      flexBtn.classList.remove("active")
+      if (this.hasGridFieldsTarget) this.gridFieldsTarget.style.display = ""
+      if (this.hasFlexFieldsTarget) this.flexFieldsTarget.style.display = "none"
+    } else {
+      gridBtn.classList.remove("active")
+      flexBtn.classList.add("active")
+      if (this.hasGridFieldsTarget) this.gridFieldsTarget.style.display = "none"
+      if (this.hasFlexFieldsTarget) this.flexFieldsTarget.style.display = ""
+    }
+
+    this.rebuild()
+  }
+
   togglePanel() {
     const page = this.element.querySelector(".editor-page")
     page.classList.toggle("full-width")
@@ -44,21 +79,38 @@ export default class extends Controller {
 
   // --- Private: read state from DOM ---
 
+  _currentType() {
+    const flexBtn = this.element.querySelector("#typeFlex")
+    return flexBtn && flexBtn.classList.contains("active") ? "flex" : "grid"
+  }
+
   _readConfig() {
+    const type = this._currentType()
+    if (type === "flex") {
+      return this._readFlexConfig()
+    }
+    return this._readGridConfig()
+  }
+
+  _readGridConfig() {
     const val = (id) => this.element.querySelector(`#${id}`)?.value || ""
     const unit = (id) => this.element.querySelector(`#${id}`)?.textContent.trim() || "fr"
 
+    const rowsMode = unit("rowsMode")
     const rows = parseInt(val("rowCount")) || 3
     const cols = parseInt(val("colCount")) || 3
     const childrenCount = parseInt(val("childrenCount")) || (rows * cols)
     const defaultRowTrack = { value: parseFloat(val("rowHeight")) || 1, unit: unit("rowHeightUnit") }
     const defaultColTrack = { value: parseFloat(val("colWidth")) || 1, unit: unit("colWidthUnit") }
 
-    // Build track arrays from per-track inputs (in preview) or defaults
-    const rowTracks = this._readTracks("row", rows, defaultRowTrack)
+    let rowTracks
+    if (rowsMode === "auto-fit" || rowsMode === "auto-fill") {
+      rowTracks = { repeat: rowsMode, value: defaultRowTrack.value, unit: defaultRowTrack.unit }
+    } else {
+      rowTracks = this._readTracks("row", rows, defaultRowTrack)
+    }
     const colTracks = this._readTracks("col", cols, defaultColTrack)
 
-    // Build areas from name inputs in the preview
     const areas = this._readAreas(rows, cols)
     const hasAreas = areas.flat().some(a => a !== ".")
 
@@ -71,6 +123,21 @@ export default class extends Controller {
       rowGapUnit: unit("rowGapUnit"),
       colGap: val("colGap") !== "" ? parseFloat(val("colGap")) : 8,
       colGapUnit: unit("colGapUnit"),
+      direction: unit("gridDirection"),
+      emptySpace: unit("gridEmptySpace"),
+      containerAlignment: {
+        horizontal: unit("gridContainerH"),
+        vertical: unit("gridContainerV")
+      },
+      childrenAlignment: {
+        horizontal: unit("gridChildrenH"),
+        vertical: unit("gridChildrenV")
+      }
+    }
+
+    const gridAreasMode = unit("gridAreasMode")
+    if (gridAreasMode !== "names") {
+      config.gridAreasMode = gridAreasMode
     }
 
     if (hasAreas) config.areas = areas
@@ -78,18 +145,62 @@ export default class extends Controller {
     return config
   }
 
+  _readFlexConfig() {
+    const val = (id) => this.element.querySelector(`#${id}`)?.value || ""
+    const unit = (id) => this.element.querySelector(`#${id}`)?.textContent.trim() || ""
+
+    const childrenCount = parseInt(val("childrenCount")) || 3
+
+    // Read children from stored config
+    let children = []
+    try {
+      const prev = JSON.parse(this.configHiddenTarget.value)
+      if (prev.children) children = prev.children
+    } catch {}
+
+    // Ensure children array matches count
+    while (children.length < childrenCount) {
+      children.push({ grow: 0, shrink: 1, basis: "auto", margin: false })
+    }
+    children = children.slice(0, childrenCount)
+
+    // Read from per-child inputs in preview if they exist
+    for (let i = 0; i < childrenCount; i++) {
+      const growInput = this.previewTarget.querySelector(`.flex-child-grow[data-index="${i}"]`)
+      const shrinkInput = this.previewTarget.querySelector(`.flex-child-shrink[data-index="${i}"]`)
+      const marginInput = this.previewTarget.querySelector(`.flex-child-margin[data-index="${i}"]`)
+      if (growInput) children[i].grow = parseFloat(growInput.value) || 0
+      if (shrinkInput) children[i].shrink = parseFloat(shrinkInput.value) || 1
+      if (marginInput) children[i].margin = marginInput.checked
+    }
+
+    const config = {
+      type: "flex",
+      childrenCount,
+      gap: val("flexGap") !== "" ? parseFloat(val("flexGap")) : 16,
+      gapUnit: unit("flexGapUnit") || "px",
+      direction: unit("flexDirection") || "row",
+      wrap: unit("flexWrap") || "nowrap",
+      containerAlignment: {
+        mainAxis: unit("flexMainAxis") || "flex-start",
+        crossAxis: unit("flexCrossAxis") || "stretch"
+      },
+      children
+    }
+
+    return config
+  }
+
   _readTracks(axis, count, defaultTrack) {
-    // Read stored tracks from config JSON (source of truth for per-track overrides)
     let storedTracks = []
     try {
       const prev = JSON.parse(this.configHiddenTarget.value)
-      storedTracks = axis === "row" ? (prev.rows || []) : (prev.columns || [])
+      const tracks = axis === "row" ? (prev.rows || []) : (prev.columns || [])
+      if (Array.isArray(tracks)) storedTracks = tracks
     } catch {}
 
-    // Check if per-track inputs exist and were directly edited
     const input = this.previewTarget.querySelector(`.track-value-input[data-axis="${axis}"]`)
     if (input) {
-      // Per-track inputs exist — read from them (user may have edited individual tracks)
       const tracks = []
       for (let i = 0; i < count; i++) {
         const inp = this.previewTarget.querySelector(`.track-value-input[data-axis="${axis}"][data-index="${i}"]`)
@@ -100,7 +211,6 @@ export default class extends Controller {
           tracks.push({ ...defaultTrack })
         }
       }
-      // If stored tracks all matched the old default, the sidebar change should win
       const storedAllSame = storedTracks.length > 0 && storedTracks.every(t =>
         t.value === storedTracks[0].value && t.unit === storedTracks[0].unit
       )
@@ -114,7 +224,6 @@ export default class extends Controller {
       return tracks
     }
 
-    // No per-track inputs yet — use stored or default
     if (storedTracks.length === count) {
       return storedTracks.map(t => ({ value: t.value, unit: t.unit }))
     }
@@ -122,7 +231,6 @@ export default class extends Controller {
   }
 
   _readAreas(rows, cols) {
-    // Read previous areas from the JSON config (source of truth)
     let areas
     try {
       const prev = JSON.parse(this.configHiddenTarget.value)
@@ -135,7 +243,6 @@ export default class extends Controller {
       )
     }
 
-    // Apply any changes from visible inputs
     this.previewTarget.querySelectorAll(".area-name-input[data-row]").forEach(input => {
       const r = parseInt(input.dataset.row)
       const c = parseInt(input.dataset.col)
@@ -151,10 +258,18 @@ export default class extends Controller {
   // --- Private: apply state to DOM ---
 
   _applyPreview(config) {
+    if (config.type === "flex") {
+      this._applyFlexPreview(config)
+    } else {
+      this._applyGridPreview(config)
+    }
+  }
+
+  _applyGridPreview(config) {
     const el = this.previewTarget
     el.innerHTML = ""
 
-    const rows = config.rows.length
+    const rows = Array.isArray(config.rows) ? config.rows.length : (parseInt(this.element.querySelector("#rowCount")?.value) || 3)
     const cols = config.columns.length
 
     // Column track controls
@@ -165,11 +280,10 @@ export default class extends Controller {
     config.columns.forEach((t, i) => colControls.appendChild(this._trackControl("col", i, t)))
     el.appendChild(colControls)
 
-    // Main preview area (relative container for grid + name overlay)
+    // Main preview area
     const main = document.createElement("div")
     main.className = "preview-main"
 
-    // The visible grid
     const grid = document.createElement("section")
     grid.className = "preview-grid"
     Object.assign(grid.style, {
@@ -178,16 +292,15 @@ export default class extends Controller {
       gap: `${config.rowGap}${config.rowGapUnit} ${config.colGap}${config.colGapUnit}`,
     })
 
-    grid.style.gridTemplateRows = config.rows.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
+    const rowTracks = Array.isArray(config.rows) ? config.rows : Array.from({ length: rows }, () => ({ value: config.rows.value, unit: config.rows.unit }))
+    grid.style.gridTemplateRows = rowTracks.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
     grid.style.gridTemplateColumns = config.columns.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
 
-    // Build areas grid and apply grid-template-areas
     const areas = config.areas || Array.from({ length: rows }, (_, r) =>
       Array.from({ length: cols }, (_, c) => `c${r * cols + c + 1}`)
     )
     grid.style.gridTemplateAreas = areas.map(row => `"${row.join(" ")}"`).join(" ")
 
-    // Render one div per unique area name — CSS merges cells with same grid-area
     const seen = new Set()
     let moduleIndex = 0
     for (let r = 0; r < rows; r++) {
@@ -219,12 +332,13 @@ export default class extends Controller {
         input.dataset.row = r
         input.dataset.col = c
         input.dataset.action = "change->layout-editor#updateOutput"
-
         cell.appendChild(input)
+
         grid.appendChild(cell)
       }
     }
-    // Dashed grid overlay
+
+    // Grid overlay
     const overlay = document.createElement("div")
     overlay.className = "grid-overlay"
     Object.assign(overlay.style, {
@@ -246,10 +360,97 @@ export default class extends Controller {
     // Row track controls
     const rowControls = document.createElement("div")
     rowControls.className = "track-controls track-controls--row"
-    rowControls.style.gridTemplateRows = config.rows.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
+    rowControls.style.gridTemplateRows = rowTracks.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
     rowControls.style.rowGap = `${config.rowGap}${config.rowGapUnit}`
-    config.rows.forEach((t, i) => rowControls.appendChild(this._trackControl("row", i, t)))
+    rowTracks.forEach((t, i) => rowControls.appendChild(this._trackControl("row", i, t)))
     el.appendChild(rowControls)
+  }
+
+  _applyFlexPreview(config) {
+    const el = this.previewTarget
+    el.innerHTML = ""
+
+    const container = document.createElement("section")
+    container.className = "preview-grid preview-flex"
+    Object.assign(container.style, {
+      display: "flex",
+      width: "100%",
+      gap: `${config.gap}${config.gapUnit}`,
+      flexDirection: config.direction !== "row" ? config.direction : "",
+      flexWrap: config.wrap !== "nowrap" ? config.wrap : "",
+    })
+
+    const children = config.children || []
+    for (let i = 0; i < config.childrenCount; i++) {
+      const child = children[i] || { grow: 0, shrink: 1, basis: "auto", margin: false }
+
+      const cell = document.createElement("div")
+      cell.className = "preview-cell flex-child"
+      if (child.grow > 0) cell.style.flexGrow = child.grow
+      if (child.shrink !== 1) cell.style.flexShrink = child.shrink
+      if (child.margin) cell.style.marginLeft = "auto"
+
+      // Child controls
+      const controls = document.createElement("div")
+      controls.className = "flex-child-controls"
+
+      // flex: grow shrink basis
+      const flexLabel = document.createElement("label")
+      flexLabel.textContent = "flex:"
+      flexLabel.className = "flex-label"
+      controls.appendChild(flexLabel)
+
+      const growInput = document.createElement("input")
+      growInput.type = "text"
+      growInput.className = "flex-child-grow track-value-input"
+      growInput.value = child.grow
+      growInput.dataset.index = i
+      growInput.dataset.action = "input->layout-editor#rebuild"
+      controls.appendChild(growInput)
+
+      const shrinkInput = document.createElement("input")
+      shrinkInput.type = "text"
+      shrinkInput.className = "flex-child-shrink track-value-input"
+      shrinkInput.value = child.shrink
+      shrinkInput.dataset.index = i
+      shrinkInput.dataset.action = "input->layout-editor#rebuild"
+      controls.appendChild(shrinkInput)
+
+      const basisSpan = document.createElement("span")
+      basisSpan.className = "flex-basis-label"
+      basisSpan.textContent = child.basis
+      controls.appendChild(basisSpan)
+
+      // margin checkbox
+      const marginLabel = document.createElement("label")
+      marginLabel.textContent = "margin:"
+      marginLabel.className = "flex-label"
+      controls.appendChild(marginLabel)
+
+      const marginCheck = document.createElement("input")
+      marginCheck.type = "checkbox"
+      marginCheck.className = "flex-child-margin"
+      marginCheck.checked = child.margin
+      marginCheck.dataset.index = i
+      marginCheck.dataset.action = "change->layout-editor#rebuild"
+      controls.appendChild(marginCheck)
+
+      cell.appendChild(controls)
+
+      const placeholder = document.createElement("div")
+      placeholder.className = "module-placeholder"
+      placeholder.textContent = `Module ${i + 1}`
+      cell.appendChild(placeholder)
+
+      const number = document.createElement("span")
+      number.className = "cell-number"
+      number.textContent = i + 1
+      cell.appendChild(number)
+
+      container.appendChild(cell)
+    }
+
+    el.appendChild(container)
   }
 
   _trackControl(axis, index, track) {

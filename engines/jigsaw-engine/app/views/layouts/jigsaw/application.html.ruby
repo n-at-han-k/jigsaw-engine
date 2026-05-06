@@ -9,6 +9,8 @@ Html {
     CspMetaTag()
     StylesheetLink("stylesheets.css")
     Link(rel: "stylesheet", href: "/monaco-editor/index.css")
+    Script(src: "https://cdn.tailwindcss.com")
+    Script { text "tailwind.config = { corePlugins: { preflight: false } }" }
     text fui_javascript_tags
     JavascriptImportmap()
   }
