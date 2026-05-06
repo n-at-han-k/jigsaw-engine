@@ -77,6 +77,11 @@ export default class extends Controller {
     page.classList.toggle("full-width")
   }
 
+  toggleTracks() {
+    const center = this.element.querySelector(".editor-center")
+    center.classList.toggle("hide-tracks")
+  }
+
   // --- Private: read state from DOM ---
 
   _currentType() {

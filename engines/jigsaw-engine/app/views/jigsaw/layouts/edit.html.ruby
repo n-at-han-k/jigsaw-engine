@@ -7,6 +7,10 @@ Wrapper(data: { controller: "layout-editor" }) {
     MenuItem(header: true) { text @layout.name }
     SubMenu(position: "right") {
       MenuItem {
+        Button(type: "button", icon: "exchange", size: "tiny",
+               data: { action: "click->layout-editor#toggleTracks" }) { text "Tracks" }
+      }
+      MenuItem {
         Button(type: "button", icon: "sidebar", size: "tiny",
                data: { action: "click->layout-editor#togglePanel" }) { text "Panel" }
       }

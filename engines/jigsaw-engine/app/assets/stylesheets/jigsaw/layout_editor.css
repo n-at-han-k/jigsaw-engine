@@ -2,6 +2,16 @@ html, body {
   height: 100%;
 }
 
+[data-controller="layout-editor"] .ui.menu .item[data-action] {
+  cursor: pointer;
+}
+
+[data-controller="layout-editor"] .ui.menu .item[data-action]:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+
+
 [data-controller="layout-editor"] {
   display: flex;
   flex-direction: column;
@@ -36,6 +46,17 @@ html, body {
     "main row-controls";
   gap: 0;
   overflow: auto;
+}
+
+.editor-center.hide-tracks {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "main";
+}
+
+.editor-center.hide-tracks .track-controls--col,
+.editor-center.hide-tracks .track-controls--row {
+  display: none;
 }
 
 .editor-output {
