@@ -1,7 +1,9 @@
 Jigsaw::Engine.routes.draw do
-  resources :data_functions,   only: [:show, :update], defaults: { format: :js }
-  resources :render_functions,  only: [:show, :update], defaults: { format: :js }
-  resources :page_modules,     only: [:edit]
+  root "dashboard#index"
+
+  resources :data_functions
+  resources :render_functions
+  resources :page_modules,     only: [:index, :edit]
   resources :layouts
 
   get "*path", to: "custom_pages#show",
