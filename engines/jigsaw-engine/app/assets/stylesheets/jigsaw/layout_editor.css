@@ -344,3 +344,49 @@ html, body {
   font-size: 10px;
   color: #888;
 }
+
+/* Area name overlay (on top of live modules in page editor) */
+.area-name-overlay {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 12px);
+  padding: 2px 4px;
+  font-size: 11px;
+  text-align: center;
+  border: 1px dashed transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #333;
+  z-index: 10;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.area-name-overlay:hover {
+  border-color: #aaa;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.area-name-overlay:focus {
+  border-color: #4183c4;
+  background: rgba(255, 255, 255, 0.9);
+  outline: none;
+}
+
+.area-name-overlay::placeholder {
+  color: #bbb;
+}
+
+/* Empty cell (unoccupied grid area in page editor) */
+.empty-cell {
+  border: 2px dashed #ccc;
+  border-radius: 4px;
+  min-height: 60px;
+}
+
+.empty-cell .module-placeholder {
+  background: transparent;
+  color: #bbb;
+  font-style: italic;
+}

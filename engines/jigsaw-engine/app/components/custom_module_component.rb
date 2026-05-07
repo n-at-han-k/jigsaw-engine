@@ -6,7 +6,6 @@ class CustomModuleComponent < Component
   attribute :render_function_url, :string
   attribute :config,             :string, default: "{}"
   attribute :shares,             :string, default: "[]"
-  attribute :slot,               :string, default: nil
   attribute :edit_url,           :string
 
   def to_s
@@ -29,7 +28,7 @@ class CustomModuleComponent < Component
         "custom-module-config-value": config,
         "custom-module-shares-value": shares
       },
-      class: slot
+      class: "custom-module-content"
     )
 
     tag.div(**merge_html_options(style: "position: relative;")) {

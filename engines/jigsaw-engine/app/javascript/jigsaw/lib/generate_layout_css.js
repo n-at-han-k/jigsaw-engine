@@ -78,7 +78,7 @@ function generateGridCssWithAreas(c) {
   return css
 }
 
-function autoFlowStr(c) {
+export function autoFlowStr(c) {
   const direction = c.direction
   const dense = c.emptySpace === "fill"
 
@@ -260,7 +260,7 @@ function generateFlexHtml(c) {
 
 // --- Helpers ---
 
-function trackStr(track) {
+export function trackStr(track) {
   if (!track) return "1fr"
   if (track.unit === "auto") return "auto"
   if (track.unit === "min-content") return "min-content"
@@ -268,7 +268,7 @@ function trackStr(track) {
   return `${track.value}${track.unit}`
 }
 
-function trackListStr(tracks) {
+export function trackListStr(tracks) {
   if (!tracks) return "1fr"
   if (!Array.isArray(tracks)) {
     const size = trackStr(tracks)
@@ -278,7 +278,7 @@ function trackListStr(tracks) {
   return tracks.map(t => trackStr(t)).join(" ")
 }
 
-function gridGapStr(c) {
+export function gridGapStr(c) {
   const rowGap = `${c.rowGap}${c.rowGapUnit || "px"}`
   const colGap = `${c.colGap}${c.colGapUnit || "px"}`
   return rowGap === colGap ? rowGap : `${rowGap} ${colGap}`

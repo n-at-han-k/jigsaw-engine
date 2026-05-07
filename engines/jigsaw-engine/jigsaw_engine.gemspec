@@ -18,4 +18,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rails-active-ui", "~> 0.3"
   spec.add_dependency "mini_racer"
   spec.add_dependency "json_schemer", "~> 2.0"
+  spec.add_dependency "acts_as_list"
 end

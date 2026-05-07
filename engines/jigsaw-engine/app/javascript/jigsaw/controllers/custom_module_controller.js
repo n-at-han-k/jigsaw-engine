@@ -11,6 +11,8 @@ export default class extends Controller {
 
   async connect() {
     try {
+      if (!this.dataFnUrlValue || !this.renderFnUrlValue) return
+
       const pageEl = this.element.closest("[data-controller~='custom-page']")
       if (!pageEl) return
 

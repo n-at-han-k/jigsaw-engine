@@ -3,13 +3,11 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["tab", "editorContainer"]
   static values = {
-    moduleId:         Number,
-    dataFunctionId:   Number,
-    renderFunctionId: Number,
-    dataSource:       String,
-    renderSource:     String,
-    renderLanguage:   String,
-    config:           String
+    moduleId:       Number,
+    dataSource:     String,
+    renderSource:   String,
+    renderLanguage: String,
+    config:         String
   }
 
   connect() {
@@ -114,17 +112,17 @@ export default class extends Controller {
     }
 
     try {
-      const resp1 = await fetch(`/jigsaw/data_functions/${this.dataFunctionIdValue}`, {
+      const resp = await fetch(`/jigsaw/page_modules/${this.moduleIdValue}`, {
         method: "PATCH", headers,
-        body: JSON.stringify({ data_function: { source: this.sources.data } })
+        body: JSON.stringify({
+          page_module: {
+            data_source: this.sources.data,
+            render_source: this.sources.render,
+            config: this.sources.config
+          }
+        })
       })
-      if (!resp1.ok) throw new Error(`Data function save failed: ${resp1.status}`)
-
-      const resp2 = await fetch(`/jigsaw/render_functions/${this.renderFunctionIdValue}`, {
-        method: "PATCH", headers,
-        body: JSON.stringify({ render_function: { source: this.sources.render } })
-      })
-      if (!resp2.ok) throw new Error(`Render function save failed: ${resp2.status}`)
+      if (!resp.ok) throw new Error(`Save failed: ${resp.status}`)
     } catch (err) {
       console.error("[module-editor] save failed:", err)
     }

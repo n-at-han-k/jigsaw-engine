@@ -1,3 +1,4 @@
+require "acts_as_list"
 require "jigsaw/version"
 require "jigsaw/jsx_compiler"
 require "jigsaw/grid_layout_generator"

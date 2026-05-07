@@ -3,11 +3,9 @@ TurboFrame(id: "editor") {
     data: {
       controller: "module-editor",
       "module-editor-module-id-value": @page_module.id,
-      "module-editor-data-function-id-value": @page_module.data_function_id,
-      "module-editor-render-function-id-value": @page_module.render_function_id,
-      "module-editor-data-source-value": @page_module.data_function.source,
-      "module-editor-render-source-value": @page_module.render_function.source,
-      "module-editor-render-language-value": @page_module.render_function.language,
+      "module-editor-data-source-value": @page_module.data_source || "",
+      "module-editor-render-source-value": @page_module.render_source || "",
+      "module-editor-render-language-value": @page_module.render_language || "javascript",
       "module-editor-config-value": @page_module.config.to_json
     }
   ) {
