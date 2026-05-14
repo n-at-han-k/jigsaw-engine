@@ -1,3 +1,5 @@
+const { scopedPreflightStyles, isolateInsideOfContainer } = require('tailwindcss-scoped-preflight');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   prefix: 'tw-',
@@ -10,7 +12,6 @@ module.exports = {
     { pattern: /.*/ },
   ],
   corePlugins: {
-    preflight: false,
     container: false,
   },
   theme: {
@@ -71,5 +72,9 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    scopedPreflightStyles({
+      isolationStrategy: isolateInsideOfContainer('[data-controller~="custom-module"]'),
+    }),
+  ],
 }
