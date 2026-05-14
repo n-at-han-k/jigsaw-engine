@@ -1,7 +1,7 @@
 module Jigsaw
   class PagesController < ApplicationController
 
-    before_action :set_page, only: [:edit, :update, :destroy]
+    before_action :set_page, only: [:edit, :update, :destroy, :unlink_template]
 
     DEFAULT_GRID_CONFIG = {
       "type"        => "grid",
@@ -22,27 +22,42 @@ module Jigsaw
 
     def new
       @page = Page.new
+      @layout_templates = LayoutTemplate.order(:name)
     end
 
     def create
       @page = Page.new(page_params)
       if @page.save
-        @page.create_layout!(name: "#{@page.title} Layout", config: DEFAULT_GRID_CONFIG.deep_dup)
+        layout_template_id = params[:page][:layout_template_id]
+        if layout_template_id.present?
+          lt = LayoutTemplate.find(layout_template_id)
+          @page.create_layout!(
+            name: "#{@page.title} Layout",
+            config: lt.config.deep_dup,
+            layout_template: lt,
+            linked_to_template: true
+          )
+        else
+          @page.create_layout!(name: "#{@page.title} Layout", config: DEFAULT_GRID_CONFIG.deep_dup)
+        end
         @page.layout.sync_slots
         redirect_to edit_page_path(@page), notice: "Page created"
       else
+        @layout_templates = LayoutTemplate.order(:name)
         render :new, status: :unprocessable_entity
       end
     end
 
     def edit
-      @layout.sync_slots if @layout
+      if @layout && !@layout.linked_to_template?
+        @layout.sync_slots
+      end
       @slots = @layout&.slots&.order(:position) || []
     end
 
     def update
       if @page.update(page_params)
-        @page.layout&.sync_slots
+        @page.layout&.sync_slots unless @page.layout&.linked_to_template?
         redirect_to edit_page_path(@page), notice: "Page updated"
       else
         @slots = @layout&.slots&.order(:position) || []
@@ -64,6 +79,11 @@ module Jigsaw
     def destroy
       @page.destroy!
       redirect_to pages_path, notice: "Page deleted"
+    end
+
+    def unlink_template
+      @layout&.unlink_from_template!
+      redirect_to edit_page_path(@page), notice: "Unlinked from layout template"
     end
 
     private

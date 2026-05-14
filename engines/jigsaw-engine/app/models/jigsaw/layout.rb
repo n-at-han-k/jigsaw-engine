@@ -1,82 +1,59 @@
 module Jigsaw
   class Layout < ApplicationRecord
-    SCHEMA_PATH = File.expand_path("schemas/layout_config.json", __dir__)
-    SCHEMA = JSONSchemer.schema(Pathname.new(SCHEMA_PATH))
+    include GridConfigurable
 
     belongs_to :page
+    belongs_to :layout_template, optional: true
     has_many :slots, -> { order(:position) }, dependent: :destroy
 
-    store_accessor(
-      :config,
-      :gridWidth,
-      :gridHeight,
-      :rowGap,
-      :colGap,
-      :rowGapUnit,
-      :colGapUnit,
-    )
-
-    def config=(val)
-      val = JSON.parse(val) if val.is_a?(String)
-      super(val)
-    end
-
-    def rowGap=(val)
-      super(val.to_i)
-    end
-
-    def colGap=(val)
-      super(val.to_i)
-    end
-
     validates :name, presence: true, uniqueness: true
-    validates :config, presence: true
-    validate :config_valid_per_schema
 
-    before_save :compile_css
+    def skip_config_validation?
+      linked_to_template?
+    end
 
-    def unique_area_names
-      if config["areas"].is_a?(Array)
-        config["areas"].flatten.uniq.reject { |s| s == "." }
+    # --- Template Linking ---
+
+    def effective_config
+      if linked_to_template? && layout_template
+        layout_template.config
       else
-        []
+        config
       end
     end
 
-    def sync_slots
-      if config["areas"].is_a?(Array)
-        current_names = unique_area_names
-        existing = slots.reload.index_by(&:area_name)
-
-        obsolete = existing.reject { |name, _| current_names.include?(name) }
-        obsolete.values.each(&:destroy!)
-        obsolete.keys.each { |name| existing.delete(name) }
-
-        current_names.each do |name|
-          unless existing.key?(name)
-            existing[name] = slots.create!(area_name: name)
-          end
-        end
-
-        current_names.each_with_index do |name, position|
-          slot = existing[name]
-          slot.update_column(:position, position) if slot.position != position
-        end
+    def effective_compiled_css
+      if linked_to_template? && layout_template
+        layout_template.compiled_css
+      else
+        compiled_css
       end
+    end
+
+    def unlink_from_template!
+      return unless linked_to_template? && layout_template
+
+      # Copy template's grid config locally
+      self.config = layout_template.config.deep_dup
+      self.linked_to_template = false
+      self.layout_template = nil
+      save!
+    end
+
+    def link_to_template!(tmpl)
+      self.layout_template = tmpl
+      self.linked_to_template = true
+      save!
     end
 
     private
 
-      def config_valid_per_schema
-        unless config.blank?
-          SCHEMA.validate(config).each do |error|
-            errors.add(:config, JSONSchemer::Errors.pretty(error))
-          end
-        end
-      end
-
+      # Override compile_css from concern to use effective_config
       def compile_css
-        generator = GridLayoutGenerator.new(config, id || SecureRandom.hex(4))
+        cfg = effective_config
+        return if cfg.blank?
+
+        generator = GridLayoutGenerator.new(cfg, id || SecureRandom.hex(4))
         self.compiled_css = generator.call
         self.compiled_digest = Digest::SHA256.hexdigest(compiled_css)
       end

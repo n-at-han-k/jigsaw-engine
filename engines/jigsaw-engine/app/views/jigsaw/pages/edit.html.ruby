@@ -15,6 +15,19 @@ Wrapper(
     BackButton(href: pages_path, icon: "arrow left")
 
     SubMenu(position: "right") {
+      if @layout&.linked_to_template?
+        MenuItem {
+          ButtonTo(
+            url: unlink_template_page_path(@page),
+            method: :post,
+            color: "orange",
+            size: "tiny",
+            confirm: "Unlink from layout template? Grid config will be copied locally.",
+            icon: "unlinkify"
+          ) { "Unlink Layout" }
+        }
+      end
+
       MenuItem {
         Button(
           type: "button",
@@ -33,16 +46,30 @@ Wrapper(
           icon: "trash"
         ) { "Delete" }
       }
-      MenuItem {
-        Button(
-          type: "submit",
-          form: "page-form",
-          color: "green",
-          size: "tiny"
-        ) { "Save" }
-      }
+
+      unless @layout&.linked_to_template?
+        MenuItem {
+          Button(
+            type: "submit",
+            form: "page-form",
+            color: "green",
+            size: "tiny"
+          ) { "Save" }
+        }
+      end
     }
   }
+
+  if @layout&.linked_to_template?
+    Message(info: true, style: "margin: 0.5rem 1rem;") {
+      Wrapper(style: "display: flex; align-items: center; gap: 0.5em;") {
+        text tag.i(class: "linkify icon")
+        text "Layout linked to template: "
+        text tag.strong(@layout.layout_template.name)
+        text ". Grid editing is disabled."
+      }
+    }
+  end
 
   Wrapper(class: "editor-page") {
     Wrapper(
@@ -58,9 +85,11 @@ Wrapper(
       }
     ) {
 
-      Partial("form")
+      unless @layout&.linked_to_template?
+        Partial("form")
 
-      Wrapper(html_class: "panel-divider")
+        Wrapper(html_class: "panel-divider")
+      end
 
       Header(size: 5) { "CSS" }
       Pre(data: { "layout-editor-target": "cssOutput" }, class: "code-output")

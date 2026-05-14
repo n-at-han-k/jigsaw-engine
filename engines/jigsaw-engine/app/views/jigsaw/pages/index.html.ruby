@@ -23,6 +23,7 @@ Container(style: "padding: 1rem;") {
           TableCell(heading: true) { "Title" }
           TableCell(heading: true) { "Route" }
           TableCell(heading: true) { "Layout" }
+          TableCell(heading: true) { "Layout Template" }
           TableCell(heading: true) { "Actions" }
         }
       }
@@ -39,6 +40,17 @@ Container(style: "padding: 1rem;") {
 
           TableCell {
             text page.layout ? page.layout.name : "—"
+          }
+
+          TableCell {
+            if page.layout&.linked_to_template? && page.layout.layout_template
+              Wrapper(style: "display: flex; align-items: center; gap: 0.3em;") {
+                text tag.i(class: "linkify icon")
+                text page.layout.layout_template.name
+              }
+            else
+              text "—"
+            end
           }
 
           TableCell {

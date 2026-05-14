@@ -1,4 +1,5 @@
 require "acts_as_list"
+require "acts-as-taggable-on"
 require "json_schemer"
 require "jigsaw"
 require "jigsaw/version"
@@ -16,11 +17,13 @@ module Jigsaw
     end
 
     initializer "jigsaw_engine.assets" do |app|
-      ui_gem = Gem::Specification.find_by_name("rails-active-ui")
-      app.config.assets.paths << File.join(ui_gem.gem_dir, "app/assets")
-      app.config.assets.paths << root.join("app/assets/stylesheets")
-      app.config.assets.paths << root.join("app/javascript")
-      app.config.assets.paths << Rails.root.join("app/assets/stylesheets")
+      if app.config.respond_to?(:assets) && app.config.assets.respond_to?(:paths)
+        ui_gem = Gem::Specification.find_by_name("rails-active-ui")
+        app.config.assets.paths << File.join(ui_gem.gem_dir, "app/assets")
+        app.config.assets.paths << root.join("app/assets/stylesheets")
+        app.config.assets.paths << root.join("app/javascript")
+        app.config.assets.paths << Rails.root.join("app/assets/stylesheets")
+      end
     end
   end
 end

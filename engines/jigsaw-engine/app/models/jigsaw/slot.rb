@@ -1,65 +1,109 @@
 module Jigsaw
   class Slot < ApplicationRecord
     belongs_to :layout
+    belongs_to :slot_template, optional: true
 
-    acts_as_list scope: :layout
+    def self.slot_list_scope
+      :layout
+    end
 
-    validates :area_name, presence: true, uniqueness: { scope: :layout_id }
+    def self.slot_uniqueness_scope
+      :layout_id
+    end
 
-    after_initialize :set_default_sources
-    before_save :normalize_config, :compile_sources
+    include SlotCompilable
 
-    private
+    # --- Template Linking ---
 
-      def normalize_config
-        self.config = {} if config.nil?
-        if config.is_a?(String)
-          parsed = begin
-            JSON.parse(config)
-          rescue JSON::ParserError
-            {}
-          end
-          self.config = parsed
-        end
+    def effective_data_source
+      if linked_to_template? && slot_template
+        slot_template.data_source
+      else
+        data_source
       end
+    end
 
-      def set_default_sources
-        if data_source.blank?
-          self.data_source = <<~JS
-            export default function(shared, config) {
-              return { title: config.title || "Slot" }
-            }
-          JS
-        end
-
-        if render_source.blank?
-          self.render_source = <<~JS
-            export default function(data) {
-              this.element.innerHTML = `
-                <div style="padding: 1em; border: 1px dashed #ccc; border-radius: 4px; text-align: center; color: #666;">
-                  <strong>${data.title}</strong>
-                  <p style="margin: 0.5em 0 0; font-size: 0.85em;">Click edit to configure</p>
-                </div>
-              `
-            }
-          JS
-        end
+    def effective_data_compiled_source
+      if linked_to_template? && slot_template
+        slot_template.data_compiled_source
+      else
+        data_compiled_source
       end
+    end
 
-      def compile_sources
-        if data_source_changed? && data_source.present?
-          self.data_compiled_source = data_source
-          self.data_compiled_digest = Digest::SHA256.hexdigest(data_source)
-        end
-
-        if render_source_changed? && render_source.present?
-          if render_language == "jsx"
-            self.render_compiled_source = JsxCompiler.compile(render_source)
-          else
-            self.render_compiled_source = render_source
-          end
-          self.render_compiled_digest = Digest::SHA256.hexdigest(render_source)
-        end
+    def effective_data_compiled_digest
+      if linked_to_template? && slot_template
+        slot_template.data_compiled_digest
+      else
+        data_compiled_digest
       end
+    end
+
+    def effective_render_source
+      if linked_to_template? && slot_template
+        slot_template.render_source
+      else
+        render_source
+      end
+    end
+
+    def effective_render_compiled_source
+      if linked_to_template? && slot_template
+        slot_template.render_compiled_source
+      else
+        render_compiled_source
+      end
+    end
+
+    def effective_render_compiled_digest
+      if linked_to_template? && slot_template
+        slot_template.render_compiled_digest
+      else
+        render_compiled_digest
+      end
+    end
+
+    def effective_config
+      if linked_to_template? && slot_template
+        slot_template.config
+      else
+        config
+      end
+    end
+
+    def effective_shares
+      if linked_to_template? && slot_template
+        slot_template.shares
+      else
+        shares
+      end
+    end
+
+    def effective_render_language
+      if linked_to_template? && slot_template
+        slot_template.render_language
+      else
+        render_language
+      end
+    end
+
+    def unlink_from_template!
+      return unless linked_to_template? && slot_template
+
+      self.data_source = slot_template.data_source
+      self.render_source = slot_template.render_source
+      self.render_language = slot_template.render_language
+      self.config = slot_template.config.deep_dup
+      self.shares = slot_template.shares.deep_dup
+      self.linked_to_template = false
+      self.slot_template = nil
+      save!
+    end
+
+    def link_to_template!(tmpl)
+      self.slot_template = tmpl
+      self.linked_to_template = true
+      save!
+    end
   end
 end

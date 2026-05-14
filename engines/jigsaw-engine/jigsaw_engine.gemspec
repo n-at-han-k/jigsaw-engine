@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "mini_racer"
   spec.add_dependency "json_schemer", "~> 2.0"
   spec.add_dependency "acts_as_list"
+  spec.add_dependency "acts-as-taggable-on", "~> 13.0"
 
   # Dummy host app + development tooling. These are not runtime deps of the
   # engine itself, but are required to boot the harness Rails app at the repo

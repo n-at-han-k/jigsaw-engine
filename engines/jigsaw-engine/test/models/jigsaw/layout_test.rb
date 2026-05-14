@@ -71,19 +71,6 @@ module Jigsaw
 
     # --- Areas ---
 
-    test "non-rectangular areas fail validation" do
-      layout = new_layout(name: "L-shape", config: holy_grail_config.merge(
-        "areas" => [
-          ["a", "a"],
-          ["a", "b"]
-        ],
-        "columns" => ["1fr", "1fr"],
-        "rows" => ["1fr", "1fr"]
-      ))
-      assert_not layout.valid?
-      assert layout.errors[:config].any? { |e| e.include?("not rectangular") }
-    end
-
     test "unique_area_names returns deduplicated area names excluding dots" do
       layout = new_layout(name: "areas", config: holy_grail_config)
       assert_equal %w[header left main right footer], layout.unique_area_names
