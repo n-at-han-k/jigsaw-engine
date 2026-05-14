@@ -4,8 +4,8 @@
 require_relative "../lib/jigsaw/version"
 
 local_version = Jigsaw::VERSION
-gem_name = "kube_cluster"
-gemspec = "kube_cluster.gemspec"
+gem_name = "jigsaw_engine"
+gemspec = "jigsaw_engine.gemspec"
 
 puts "Local version: #{local_version}"
 
