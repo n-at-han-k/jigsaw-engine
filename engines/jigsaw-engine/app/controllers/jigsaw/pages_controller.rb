@@ -1,5 +1,6 @@
 module Jigsaw
   class PagesController < ApplicationController
+
     before_action :set_page, only: [:edit, :update, :destroy]
 
     DEFAULT_GRID_CONFIG = {
@@ -9,8 +10,8 @@ module Jigsaw
       "rows"        => ["1fr"],
       "gridWidth"   => "100%",
       "gridHeight"  => "100%",
-      "rowGap"      => 0,
-      "colGap"      => 0,
+      "rowGap"      => 8,
+      "colGap"      => 8,
       "rowGapUnit"  => "px",
       "colGapUnit"  => "px"
     }.freeze
@@ -40,7 +41,7 @@ module Jigsaw
     end
 
     def update
-      if @page.update(page_params)
+      if @page.update!(page_params)
         @page.layout&.sync_slots
         redirect_to edit_page_path(@page), notice: "Page updated"
       else
@@ -52,7 +53,12 @@ module Jigsaw
     def show
       @page = Page.find_by!(path: params[:path].to_s.delete_prefix("/"))
       @layout = @page.layout
-      @slots = @layout ? @layout.slots.order(:position) : []
+
+      if @layout
+        @slots = @layout.slots.order(:position)
+      else
+        @slots = []
+      end
     end
 
     def destroy
@@ -68,7 +74,19 @@ module Jigsaw
       end
 
       def page_params
-        params.require(:page).permit(:title, :path, layout_attributes: [:id, :config])
+        params.require(:page).permit(
+          :title, :path,
+          layout_attributes: [
+            :id,
+            :config,
+            :gridWidth,
+            :gridHeight,
+            :rowGap,
+            :colGap,
+            :rowGapUnit,
+            :colGapUnit
+          ]
+        )
       end
   end
 end

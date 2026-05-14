@@ -43,8 +43,9 @@ html, body {
     ". col-controls"
     "row-controls main";
   gap: 0;
-  overflow: auto;
-  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0px;
 }
 
 .editor-output {
@@ -208,9 +209,8 @@ html, body {
   right: 0;
   bottom: 0;
   left: 0;
-  margin: 4px;
   background: #c0cbdc;
-  border-radius: 10px;
+  border: 1px dashed #555;
   transition: 0.1s ease-out;
 }
 
