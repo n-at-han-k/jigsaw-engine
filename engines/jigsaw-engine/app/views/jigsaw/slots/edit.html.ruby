@@ -12,9 +12,9 @@ TurboFrame(id: "editor") {
     Header(size: 4) { text "Slot: #{@slot.area_name}" }
 
     Menu(attached: "top", tabular: true) {
-      MenuItem(class: "item", data: { "module-editor-target": "tab", tab: "data", action: "click->module-editor#switchTab" }) { text "Data" }
-      MenuItem(class: "active item", data: { "module-editor-target": "tab", tab: "render", action: "click->module-editor#switchTab" }) { text "Render" }
-      MenuItem(class: "item", data: { "module-editor-target": "tab", tab: "config", action: "click->module-editor#switchTab" }) { text "Config" }
+      MenuItem(data: { "module-editor-target": "tab", tab: "data", action: "click->module-editor#switchTab" }) { text "Data" }
+      MenuItem(active: true, data: { "module-editor-target": "tab", tab: "render", action: "click->module-editor#switchTab" }) { text "Render" }
+      MenuItem(data: { "module-editor-target": "tab", tab: "config", action: "click->module-editor#switchTab" }) { text "Config" }
     }
 
     Wrapper(

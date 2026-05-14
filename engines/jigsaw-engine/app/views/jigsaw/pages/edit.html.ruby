@@ -20,12 +20,12 @@ Wrapper(
 
       MenuItem(style: "padding: 4px 12px;") {
         TextField(:title, label: false, placeholder: "Page title",
-                  style: "min-width: 180px; margin: 0;")
+                  style: "min-width: 180px; margin: 0;", field: true)
       }
 
       MenuItem(style: "padding: 4px 12px;") {
         TextField(:path, label: false, placeholder: "route/path",
-                  style: "min-width: 160px; margin: 0;")
+                  style: "min-width: 160px; margin: 0;", field: true)
       }
 
       SubMenu(position: "right") {
@@ -51,29 +51,29 @@ Wrapper(
       }
     }
 
-    Wrapper(class: "editor-page") {
-      Wrapper(class: "editor-center", data: { "layout-editor-target": "preview" })
+    Wrapper(html_class: "editor-page") {
+      Wrapper(html_class: "editor-center", data: { "layout-editor-target": "preview" })
 
-      Wrapper(class: "editor-output",
+      Wrapper(html_class: "editor-output",
               data: { "layout-editor-target": "panel", action: "input->layout-editor#rebuild" }) {
 
-        Wrapper(class: "sidebar-field") {
+        Wrapper(html_class: "sidebar-field") {
           Label(for: "gridWidth") { text "Width" }
-          Wrapper(class: "sidebar-input-row") {
+          Wrapper(html_class: "sidebar-input-row") {
             Input(type: "text", id: "gridWidth", value: @layout.config["gridWidth"] || "100%")
           }
         }
 
-        Wrapper(class: "sidebar-field") {
+        Wrapper(html_class: "sidebar-field") {
           Label(for: "gridHeight") { text "Height" }
-          Wrapper(class: "sidebar-input-row") {
+          Wrapper(html_class: "sidebar-input-row") {
             Input(type: "text", id: "gridHeight", value: @layout.config["gridHeight"] || "100%")
           }
         }
 
-        Wrapper(class: "sidebar-field") {
+        Wrapper(html_class: "sidebar-field") {
           Label(for: "rowGap") { text "Row Gap" }
-          Wrapper(class: "sidebar-input-row") {
+          Wrapper(html_class: "sidebar-input-row") {
             Input(type: "text", id: "rowGap", value: @layout.config["rowGap"] || 8)
             Button(type: "button", id: "rowGapUnit", class: "unit-btn",
                    data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
@@ -81,9 +81,9 @@ Wrapper(
           }
         }
 
-        Wrapper(class: "sidebar-field") {
+        Wrapper(html_class: "sidebar-field") {
           Label(for: "colGap") { text "Column Gap" }
-          Wrapper(class: "sidebar-input-row") {
+          Wrapper(html_class: "sidebar-input-row") {
             Input(type: "text", id: "colGap", value: @layout.config["colGap"] || 8)
             Button(type: "button", id: "colGapUnit", class: "unit-btn",
                    data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
@@ -91,7 +91,7 @@ Wrapper(
           }
         }
 
-        Wrapper(class: "panel-divider")
+        Wrapper(html_class: "panel-divider")
 
         Header(size: 5) { text "CSS" }
         Pre(data: { "layout-editor-target": "cssOutput" }, class: "code-output")

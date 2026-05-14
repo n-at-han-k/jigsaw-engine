@@ -42,7 +42,7 @@ Container(style: "padding: 1rem;") {
           }
 
           TableCell {
-            LinkTo(href: edit_page_path(page), class: "ui mini blue button") { "Edit" }
+            LinkTo(href: edit_page_path(page), css_class: "ui mini blue button") { "Edit" }
             ButtonTo(url: page_path(page), method: :delete, color: "red mini",
                      confirm: "Delete this page?") { text "Delete" }
           }

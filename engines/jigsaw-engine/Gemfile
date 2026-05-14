@@ -1,8 +1,4 @@
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in jigsaw_engine.gemspec.
+# All dependencies (runtime and development) are declared in jigsaw_engine.gemspec.
 gemspec
-
-gem "puma"
-gem "pg"
-gem "propshaft"
