@@ -1,0 +1,21 @@
+.grid-resize-handle {
+  position: absolute;
+  z-index: 100;
+  transition: background-color 0.15s;
+  background-color: transparent;
+}
+
+.grid-resize-handle--col {
+  width: 6px;
+  cursor: col-resize;
+}
+
+.grid-resize-handle--row {
+  height: 6px;
+  cursor: row-resize;
+}
+
+.grid-resize-handle:hover,
+.grid-resize-handle--active {
+  background-color: #3b82f6;
+}
