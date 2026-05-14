@@ -18,17 +18,15 @@ module Jigsaw
 
     def config=(val)
       val = JSON.parse(val) if val.is_a?(String)
-      super
+      super(val)
     end
 
     def rowGap=(val)
-      val = val.to_i if val.is_a?(String)
-      super
+      super(val.to_i)
     end
 
     def colGap=(val)
-      val = val.to_i if val.is_a?(String)
-      super
+      super(val.to_i)
     end
 
     validates :name, presence: true, uniqueness: true

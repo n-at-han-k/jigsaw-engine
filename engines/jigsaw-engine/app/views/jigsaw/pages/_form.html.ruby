@@ -44,8 +44,14 @@ Form(model: @page, id: "page-form") {
       Label(:rowGap) { "Row Gap" }
       Wrapper(class: "sidebar-input-row") {
         NumberField(:rowGap, id: "rowGap", min: 0, step: 1)
-        Button(type: "button", id: "rowGapUnit", class: "unit-btn",
-               data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
+        Button(
+          type: "button",
+          id: "rowGapUnit",
+          class: "unit-btn",
+          data: {
+            action: "click->layout-editor#cycleUnit",
+            units: "px,rem,%"
+          }
         ) { @layout.rowGapUnit || "px" }
       }
     }
@@ -54,8 +60,14 @@ Form(model: @page, id: "page-form") {
       Label(:colGap) { "Column Gap" }
       Wrapper(class: "sidebar-input-row") {
         NumberField(:colGap, id: "colGap", min: 0, step: 1)
-        Button(type: "button", id: "colGapUnit", class: "unit-btn",
-               data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
+        Button(
+          type: "button",
+          id: "colGapUnit",
+          class: "unit-btn",
+          data: {
+            action: "click->layout-editor#cycleUnit",
+            units: "px,rem,%"
+          }
         ) { @layout.colGapUnit || "px" }
       }
     }

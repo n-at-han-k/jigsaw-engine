@@ -1,5 +1,6 @@
 require "acts_as_list"
 require "json_schemer"
+require "jigsaw"
 require "jigsaw/version"
 require "jigsaw/jsx_compiler"
 require "jigsaw/grid_layout_generator"

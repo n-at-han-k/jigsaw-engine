@@ -34,7 +34,7 @@ Container(style: "padding: 1rem;") {
           }
 
           TableCell {
-            LinkTo(href: "/jigsaw/#{page.path}", target: "_blank") { text "/#{page.path}" }
+            LinkTo(href: custom_page_path(page), target: "_blank") { text "/#{page.path}" }
           }
 
           TableCell {
