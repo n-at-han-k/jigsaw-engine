@@ -2,6 +2,24 @@ require "test_helper"
 
 module Jigsaw
   class LayoutTest < ActiveSupport::TestCase
+    def setup
+      @page_counter = 0
+    end
+
+    def build_page!
+      @page_counter += 1
+      Page.create!(title: "Page #{@page_counter}", path: "page-#{@page_counter}-#{SecureRandom.hex(2)}")
+    end
+
+    def new_layout(attrs = {})
+      defaults = { name: "layout-#{SecureRandom.hex(2)}", page: build_page! }
+      Layout.new(defaults.merge(attrs))
+    end
+
+    def create_layout!(attrs = {})
+      new_layout(attrs).tap(&:save!)
+    end
+
     def holy_grail_config
       {
         "type" => "grid",
@@ -22,39 +40,39 @@ module Jigsaw
     # --- Schema Validation ---
 
     test "valid grid config passes validation" do
-      layout = Layout.new(name: "test grid", config: holy_grail_config)
+      layout = new_layout(name: "test grid", config: holy_grail_config)
       assert layout.valid?, layout.errors.full_messages.to_s
     end
 
     test "invalid type fails validation" do
       config = holy_grail_config.merge("type" => "flex")
-      layout = Layout.new(name: "bad type", config: config)
+      layout = new_layout(name: "bad type", config: config)
       assert_not layout.valid?
       assert layout.errors[:config].any?
     end
 
     test "missing required fields fails validation" do
-      layout = Layout.new(name: "missing fields", config: { "type" => "grid" })
+      layout = new_layout(name: "missing fields", config: { "type" => "grid" })
       assert_not layout.valid?
       assert layout.errors[:config].any?
     end
 
     test "invalid gap unit fails validation" do
       config = holy_grail_config.merge("rowGapUnit" => "em")
-      layout = Layout.new(name: "bad gap", config: config)
+      layout = new_layout(name: "bad gap", config: config)
       assert_not layout.valid?
     end
 
     test "extra properties fail validation" do
       config = holy_grail_config.merge("bogus" => "field")
-      layout = Layout.new(name: "extra props", config: config)
+      layout = new_layout(name: "extra props", config: config)
       assert_not layout.valid?
     end
 
     # --- Areas ---
 
     test "non-rectangular areas fail validation" do
-      layout = Layout.new(name: "L-shape", config: holy_grail_config.merge(
+      layout = new_layout(name: "L-shape", config: holy_grail_config.merge(
         "areas" => [
           ["a", "a"],
           ["a", "b"]
@@ -67,7 +85,7 @@ module Jigsaw
     end
 
     test "unique_area_names returns deduplicated area names excluding dots" do
-      layout = Layout.new(name: "areas", config: holy_grail_config)
+      layout = new_layout(name: "areas", config: holy_grail_config)
       assert_equal %w[header left main right footer], layout.unique_area_names
     end
 
@@ -96,7 +114,7 @@ module Jigsaw
     end
 
     test "compile_css callback sets compiled_css and digest" do
-      layout = Layout.new(name: "compile-test", config: holy_grail_config)
+      layout = new_layout(name: "compile-test", config: holy_grail_config)
       layout.save!
 
       assert_not_nil layout.compiled_css
@@ -107,7 +125,7 @@ module Jigsaw
     # --- Slot sync ---
 
     test "sync_slots creates slots for each unique area" do
-      layout = Layout.create!(name: "sync-test", config: holy_grail_config)
+      layout = create_layout!(name: "sync-test", config: holy_grail_config)
       layout.sync_slots
 
       assert_equal 5, layout.slots.count
@@ -115,7 +133,7 @@ module Jigsaw
     end
 
     test "sync_slots removes slots whose areas no longer exist" do
-      layout = Layout.create!(name: "sync-test-2", config: holy_grail_config)
+      layout = create_layout!(name: "sync-test-2", config: holy_grail_config)
       layout.sync_slots
       assert_equal 5, layout.slots.count
 
@@ -133,7 +151,7 @@ module Jigsaw
     end
 
     test "sync_slots is idempotent" do
-      layout = Layout.create!(name: "sync-test-3", config: holy_grail_config)
+      layout = create_layout!(name: "sync-test-3", config: holy_grail_config)
       layout.sync_slots
       slot_ids = layout.slots.pluck(:id)
 

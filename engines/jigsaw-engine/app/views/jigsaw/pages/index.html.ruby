@@ -1,42 +1,53 @@
-Partial("jigsaw/layouts/_shared/menu")
+Menu(attached: "top") {
+  BackButton(href: root_path, icon: "arrow left")
+  MenuItem(header: true) { text "Pages" }
 
-Container() {
+  SubMenu(position: "right") {
+    MenuItem(href: new_page_path, icon: "plus") { text "New Page" }
+  }
+}
+
+Container(style: "padding: 1rem;") {
   Header(size: :h2, dividing: true) { "Pages" }
 
-  Table() { |c|
-
-    c.header {
-      TableRow {
-        TableCell(heading: true) { "Title" }
-        TableCell(heading: true) { "Path" }
-        TableCell(heading: true) { "Layout" }
-        TableCell(heading: true) { "Actions" }
-      }
+  if @pages.empty?
+    Message(info: true) {
+      text "No pages yet. "
+      LinkTo(href: new_page_path) { text "Create your first page" }
+      text "."
     }
-
-    @pages.each do |page|
-      TableRow {
-        TableCell {
-          LinkTo(href: edit_page_path(page)) { text page.title }
-        }
-
-        TableCell {
-          text "/#{page.path}"
-        }
-
-        TableCell {
-          if page.layout
-            text page.layout.name
-          else
-            text "—"
-          end
-        }
-
-        TableCell {
-          LinkTo(href: edit_page_path(page), class: "ui mini blue button") { "Edit" }
+  else
+    Table() { |c|
+      c.header {
+        TableRow {
+          TableCell(heading: true) { "Title" }
+          TableCell(heading: true) { "Route" }
+          TableCell(heading: true) { "Layout" }
+          TableCell(heading: true) { "Actions" }
         }
       }
-    end
 
-  }
+      @pages.each do |page|
+        TableRow {
+          TableCell {
+            LinkTo(href: edit_page_path(page)) { text page.title }
+          }
+
+          TableCell {
+            LinkTo(href: "/jigsaw/#{page.path}", target: "_blank") { text "/#{page.path}" }
+          }
+
+          TableCell {
+            text page.layout ? page.layout.name : "—"
+          }
+
+          TableCell {
+            LinkTo(href: edit_page_path(page), class: "ui mini blue button") { "Edit" }
+            ButtonTo(url: page_path(page), method: :delete, color: "red mini",
+                     confirm: "Delete this page?") { text "Delete" }
+          }
+        }
+      end
+    }
+  end
 }

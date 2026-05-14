@@ -3,7 +3,7 @@ module Jigsaw
     SCHEMA_PATH = File.expand_path("schemas/layout_config.json", __dir__)
     SCHEMA = JSONSchemer.schema(Pathname.new(SCHEMA_PATH))
 
-    belongs_to :page, optional: true
+    belongs_to :page
     has_many :slots, -> { order(:position) }, dependent: :destroy
 
     validates :name, presence: true, uniqueness: true

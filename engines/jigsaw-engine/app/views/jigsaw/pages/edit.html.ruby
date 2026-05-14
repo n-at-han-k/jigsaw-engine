@@ -11,71 +11,95 @@ Wrapper(
   }
 ) {
 
-  Menu(attached: "top") {
-    BackButton(href: pages_path, icon: "arrow left")
-    MenuItem(header: true) { text @page.title }
-    SubMenu(position: "right") {
-      MenuItem {
-        Button(type: "button", icon: "sidebar", size: "tiny",
-               data: { action: "click->layout-editor#togglePanel" }) { text "Panel" }
+  # Single combined Page+Layout form. Submits to PATCH /pages/:id with
+  # nested layout_attributes so a single save persists everything atomically.
+  Form(model: @page, html: { style: "display: contents;" }) {
+
+    Menu(attached: "top") {
+      BackButton(href: pages_path, icon: "arrow left")
+
+      MenuItem(style: "padding: 4px 12px;") {
+        TextField(:title, label: false, placeholder: "Page title",
+                  style: "min-width: 180px; margin: 0;")
       }
-      MenuItem {
-        Form(model: @layout, style: "display: inline;") {
-          HiddenField(:config, id: "configHidden", value: @layout.config.to_json,
-                      data: { "layout-editor-target": "configHidden" })
+
+      MenuItem(style: "padding: 4px 12px;") {
+        TextField(:path, label: false, placeholder: "route/path",
+                  style: "min-width: 160px; margin: 0;")
+      }
+
+      SubMenu(position: "right") {
+        MenuItem {
+          Button(type: "button", icon: "sidebar", size: "tiny",
+                 data: { action: "click->layout-editor#togglePanel" }) { text "Panel" }
+        }
+        MenuItem {
+          ButtonTo(url: page_path(@page), method: :delete, color: "red", size: "tiny",
+                   confirm: "Delete this page?", icon: "trash") { text "Delete" }
+        }
+        MenuItem {
+          # Nested layout id/config via raw inputs (one combined save).
+          text hidden_field_tag("page[layout_attributes][id]", @layout.id)
+          text hidden_field_tag(
+            "page[layout_attributes][config]",
+            @layout.config.to_json,
+            id: "configHidden",
+            data: { "layout-editor-target": "configHidden" }
+          )
           Submit("Save", color: "green", size: "tiny")
         }
       }
     }
-  }
 
-  Wrapper(class: "editor-page") {
-    Wrapper(class: "editor-center", data: { "layout-editor-target": "preview" })
+    Wrapper(class: "editor-page") {
+      Wrapper(class: "editor-center", data: { "layout-editor-target": "preview" })
 
-    Wrapper(class: "editor-output", data: { "layout-editor-target": "panel", action: "input->layout-editor#rebuild" }) {
+      Wrapper(class: "editor-output",
+              data: { "layout-editor-target": "panel", action: "input->layout-editor#rebuild" }) {
 
-      Wrapper(class: "sidebar-field") {
-        Label(for: "gridWidth") { text "Width" }
-        Wrapper(class: "sidebar-input-row") {
-          Input(type: "text", id: "gridWidth", value: @layout.config["gridWidth"] || "100%")
+        Wrapper(class: "sidebar-field") {
+          Label(for: "gridWidth") { text "Width" }
+          Wrapper(class: "sidebar-input-row") {
+            Input(type: "text", id: "gridWidth", value: @layout.config["gridWidth"] || "100%")
+          }
         }
-      }
 
-      Wrapper(class: "sidebar-field") {
-        Label(for: "gridHeight") { text "Height" }
-        Wrapper(class: "sidebar-input-row") {
-          Input(type: "text", id: "gridHeight", value: @layout.config["gridHeight"] || "100%")
+        Wrapper(class: "sidebar-field") {
+          Label(for: "gridHeight") { text "Height" }
+          Wrapper(class: "sidebar-input-row") {
+            Input(type: "text", id: "gridHeight", value: @layout.config["gridHeight"] || "100%")
+          }
         }
-      }
 
-      Wrapper(class: "sidebar-field") {
-        Label(for: "rowGap") { text "Row Gap" }
-        Wrapper(class: "sidebar-input-row") {
-          Input(type: "text", id: "rowGap", value: @layout.config["rowGap"] || 8)
-          Button(type: "button", id: "rowGapUnit", class: "unit-btn",
-                 data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
-          ) { text @layout.config["rowGapUnit"] || "px" }
+        Wrapper(class: "sidebar-field") {
+          Label(for: "rowGap") { text "Row Gap" }
+          Wrapper(class: "sidebar-input-row") {
+            Input(type: "text", id: "rowGap", value: @layout.config["rowGap"] || 8)
+            Button(type: "button", id: "rowGapUnit", class: "unit-btn",
+                   data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
+            ) { text @layout.config["rowGapUnit"] || "px" }
+          }
         }
-      }
 
-      Wrapper(class: "sidebar-field") {
-        Label(for: "colGap") { text "Column Gap" }
-        Wrapper(class: "sidebar-input-row") {
-          Input(type: "text", id: "colGap", value: @layout.config["colGap"] || 8)
-          Button(type: "button", id: "colGapUnit", class: "unit-btn",
-                 data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
-          ) { text @layout.config["colGapUnit"] || "px" }
+        Wrapper(class: "sidebar-field") {
+          Label(for: "colGap") { text "Column Gap" }
+          Wrapper(class: "sidebar-input-row") {
+            Input(type: "text", id: "colGap", value: @layout.config["colGap"] || 8)
+            Button(type: "button", id: "colGapUnit", class: "unit-btn",
+                   data: { action: "click->layout-editor#cycleUnit", units: "px,rem,%" }
+            ) { text @layout.config["colGapUnit"] || "px" }
+          }
         }
+
+        Wrapper(class: "panel-divider")
+
+        Header(size: 5) { text "CSS" }
+        Pre(data: { "layout-editor-target": "cssOutput" }, class: "code-output")
+        Header(size: 5) { text "HTML" }
+        Pre(data: { "layout-editor-target": "htmlOutput" }, class: "code-output")
+        Header(size: 5) { text "JSON" }
+        Pre(data: { "layout-editor-target": "jsonOutput" }, class: "code-output")
       }
-
-      Wrapper(class: "panel-divider")
-
-      Header(size: 5) { text "CSS" }
-      Pre(data: { "layout-editor-target": "cssOutput" }, class: "code-output")
-      Header(size: 5) { text "HTML" }
-      Pre(data: { "layout-editor-target": "htmlOutput" }, class: "code-output")
-      Header(size: 5) { text "JSON" }
-      Pre(data: { "layout-editor-target": "jsonOutput" }, class: "code-output")
     }
   }
 }
