@@ -76,3 +76,6 @@ yarn-debug.log*
 /config/*.key
 
 result
+
+# Ignore Tailwind build output
+/app/assets/stylesheets/tailwind-build.css

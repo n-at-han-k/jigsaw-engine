@@ -23,3 +23,13 @@ pin "@/components/ui/button", to: "jigsaw/components/ui/button.js"
 pin "@/components/ui/dropdown-menu", to: "jigsaw/components/ui/dropdown-menu.js"
 pin "@/components/ui/sheet", to: "jigsaw/components/ui/sheet.js"
 pin "@/lib/utils", to: "jigsaw/components/ui/utils.js"
+
+# WebContainer IDE
+pin "@webcontainer/api", to: "https://esm.sh/@webcontainer/api@1?bundle"
+pin "@monaco-editor/react", to: "https://esm.sh/@monaco-editor/react@4?bundle&external=react,react-dom,react%2Fjsx-runtime"
+pin "@monaco-editor/loader", to: "https://esm.sh/@monaco-editor/loader@1?bundle"
+pin "@radix-ui/react-context-menu", to: "https://esm.sh/@radix-ui/react-context-menu@2?bundle&external=react,react-dom,react%2Fjsx-runtime"
+pin "@radix-ui/react-label", to: "https://esm.sh/@radix-ui/react-label@2?bundle&external=react,react-dom,react%2Fjsx-runtime"
+pin "xterm", to: "https://esm.sh/xterm@5?bundle"
+pin "xterm-addon-fit", to: "https://esm.sh/xterm-addon-fit@0.8?bundle"
+pin "xterm-addon-web-links", to: "https://esm.sh/xterm-addon-web-links@0.9?bundle"

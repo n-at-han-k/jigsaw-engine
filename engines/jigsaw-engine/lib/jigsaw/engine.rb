@@ -20,6 +20,7 @@ module Jigsaw
       app.config.assets.paths << File.join(ui_gem.gem_dir, "app/assets")
       app.config.assets.paths << root.join("app/assets/stylesheets")
       app.config.assets.paths << root.join("app/javascript")
+      app.config.assets.paths << Rails.root.join("app/assets/stylesheets")
     end
   end
 end

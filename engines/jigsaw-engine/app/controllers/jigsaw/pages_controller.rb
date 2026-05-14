@@ -41,7 +41,7 @@ module Jigsaw
     end
 
     def update
-      if @page.update!(page_params)
+      if @page.update(page_params)
         @page.layout&.sync_slots
         redirect_to edit_page_path(@page), notice: "Page updated"
       else
@@ -75,7 +75,9 @@ module Jigsaw
 
       def page_params
         params.require(:page).permit(
-          :title, :path,
+          :title,
+          :path,
+
           layout_attributes: [
             :id,
             :config,
