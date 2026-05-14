@@ -2,14 +2,14 @@ TurboFrame(id: "editor") {
   Wrapper(
     data: {
       controller: "module-editor",
-      "module-editor-module-id-value": @page_module.id,
-      "module-editor-data-source-value": @page_module.data_source || "",
-      "module-editor-render-source-value": @page_module.render_source || "",
-      "module-editor-render-language-value": @page_module.render_language || "javascript",
-      "module-editor-config-value": @page_module.config.to_json
+      "module-editor-module-id-value": @slot.id,
+      "module-editor-data-source-value": @slot.data_source || "",
+      "module-editor-render-source-value": @slot.render_source || "",
+      "module-editor-render-language-value": @slot.render_language || "javascript",
+      "module-editor-config-value": @slot.config.to_json
     }
   ) {
-    Header(size: 4) { text "Module ##{@page_module.id}" }
+    Header(size: 4) { text "Slot: #{@slot.area_name}" }
 
     Menu(attached: "top", tabular: true) {
       MenuItem(class: "item", data: { "module-editor-target": "tab", tab: "data", action: "click->module-editor#switchTab" }) { text "Data" }

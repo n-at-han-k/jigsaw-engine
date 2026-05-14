@@ -10,30 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_05_185640) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_08_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-
-  create_table "jigsaw_custom_pages", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "layout_id"
-    t.string "path", null: false
-    t.string "title", null: false
-    t.datetime "updated_at", null: false
-    t.index ["layout_id"], name: "index_jigsaw_custom_pages_on_layout_id"
-    t.index ["path"], name: "index_jigsaw_custom_pages_on_path", unique: true
-  end
-
-  create_table "jigsaw_data_functions", force: :cascade do |t|
-    t.string "compiled_digest"
-    t.text "compiled_source"
-    t.datetime "created_at", null: false
-    t.string "language", default: "javascript", null: false
-    t.string "name", null: false
-    t.text "source", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_jigsaw_data_functions_on_name", unique: true
-  end
 
   create_table "jigsaw_layouts", force: :cascade do |t|
     t.text "compiled_css"
@@ -41,38 +20,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_185640) do
     t.jsonb "config", default: {}, null: false
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.bigint "page_id"
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_jigsaw_layouts_on_name", unique: true
+    t.index ["page_id"], name: "index_jigsaw_layouts_on_page_id"
   end
 
-  create_table "jigsaw_page_modules", force: :cascade do |t|
+  create_table "jigsaw_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "path", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["path"], name: "index_jigsaw_pages_on_path", unique: true
+  end
+
+  create_table "jigsaw_slots", force: :cascade do |t|
+    t.string "area_name"
     t.jsonb "config", default: {}
     t.datetime "created_at", null: false
-    t.bigint "custom_page_id", null: false
-    t.bigint "data_function_id", null: false
+    t.string "data_compiled_digest"
+    t.text "data_compiled_source"
+    t.text "data_source"
+    t.bigint "layout_id"
     t.integer "position", default: 0, null: false
-    t.bigint "render_function_id", null: false
+    t.string "render_compiled_digest"
+    t.text "render_compiled_source"
+    t.string "render_language", default: "javascript", null: false
+    t.text "render_source"
     t.jsonb "shares", default: []
-    t.string "slot"
     t.datetime "updated_at", null: false
-    t.index ["custom_page_id"], name: "index_jigsaw_page_modules_on_custom_page_id"
-    t.index ["data_function_id"], name: "index_jigsaw_page_modules_on_data_function_id"
-    t.index ["render_function_id"], name: "index_jigsaw_page_modules_on_render_function_id"
+    t.index ["layout_id", "area_name"], name: "index_jigsaw_slots_on_layout_id_and_area_name", unique: true
+    t.index ["layout_id"], name: "index_jigsaw_slots_on_layout_id"
   end
 
-  create_table "jigsaw_render_functions", force: :cascade do |t|
-    t.string "compiled_digest"
-    t.text "compiled_source"
-    t.datetime "created_at", null: false
-    t.string "language", default: "javascript", null: false
-    t.string "name", null: false
-    t.text "source", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_jigsaw_render_functions_on_name", unique: true
-  end
-
-  add_foreign_key "jigsaw_custom_pages", "jigsaw_layouts", column: "layout_id"
-  add_foreign_key "jigsaw_page_modules", "jigsaw_custom_pages", column: "custom_page_id"
-  add_foreign_key "jigsaw_page_modules", "jigsaw_data_functions", column: "data_function_id"
-  add_foreign_key "jigsaw_page_modules", "jigsaw_render_functions", column: "render_function_id"
+  add_foreign_key "jigsaw_layouts", "jigsaw_pages", column: "page_id"
+  add_foreign_key "jigsaw_slots", "jigsaw_layouts", column: "layout_id"
 end

@@ -7,15 +7,10 @@ Container(style: "padding: 1rem") {
     c.column(:name, heading: "Name") { |layout|
       LinkTo(href: edit_layout_path(layout)) { text layout.name }
     }
-    c.column(:type, heading: "Type") { |layout|
-      text layout.config["type"]&.capitalize || "—"
-    }
     c.column(:tracks, heading: "Tracks") { |layout|
-      if layout.config["type"] == "grid"
-        text "#{layout.config['columns']&.length || 0}c x #{layout.config['rows']&.length || 0}r"
-      else
-        text "#{layout.config['childrenCount'] || 0} children"
-      end
+      cols = layout.config["columns"] || []
+      rows = layout.config["rows"] || []
+      text "#{cols.length}c x #{rows.length}r"
     }
     c.column(:actions, heading: "Actions") { |layout|
       LinkTo(href: edit_layout_path(layout), class: "ui mini blue button") { text "Edit" }

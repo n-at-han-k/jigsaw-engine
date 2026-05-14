@@ -1,5 +1,5 @@
 module Jigsaw
-  class CustomPage < ApplicationRecord
+  class Page < ApplicationRecord
     has_one :layout, dependent: :destroy
 
     validates :path, presence: true, uniqueness: true

@@ -2,4 +2,4 @@
 
 system "docker compose up -d"
 
-exec "bundle", "exec", "falcon", "serve", "-b", "http://localhost:3000", *ARGV
+exec "bundle", "exec", "falcon", "serve", "-b", "http://0.0.0.0:3000", *ARGV

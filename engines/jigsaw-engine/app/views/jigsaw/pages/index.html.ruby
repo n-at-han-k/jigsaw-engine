@@ -17,7 +17,7 @@ Container() {
     @pages.each do |page|
       TableRow {
         TableCell {
-          LinkTo(href: edit_custom_page_path(page)) { text page.title }
+          LinkTo(href: edit_page_path(page)) { text page.title }
         }
 
         TableCell {
@@ -33,7 +33,7 @@ Container() {
         }
 
         TableCell {
-          LinkTo(href: edit_custom_page_path(page), class: "ui mini blue button") { "Edit" }
+          LinkTo(href: edit_page_path(page), class: "ui mini blue button") { "Edit" }
         }
       }
     end

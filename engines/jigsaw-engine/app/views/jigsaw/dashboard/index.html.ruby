@@ -7,9 +7,9 @@ Container {
       c.description { "Manage page layouts and grid configurations" }
       nil
     }
-    Card(href: custom_pages_path, link: true) { |c|
+    Card(href: pages_path, link: true) { |c|
       c.header { "Pages" }
-      c.description { "Manage custom pages and their modules" }
+      c.description { "Manage custom pages and their slots" }
       nil
     }
   }

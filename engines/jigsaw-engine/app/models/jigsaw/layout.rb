@@ -1,11 +1,10 @@
 module Jigsaw
   class Layout < ApplicationRecord
-
     SCHEMA_PATH = File.expand_path("schemas/layout_config.json", __dir__)
     SCHEMA = JSONSchemer.schema(Pathname.new(SCHEMA_PATH))
 
-    belongs_to :custom_page, optional: true
-    has_many :page_modules, -> { order(:position) }, dependent: :destroy
+    belongs_to :page, optional: true
+    has_many :slots, -> { order(:position) }, dependent: :destroy
 
     validates :name, presence: true, uniqueness: true
     validates :config, presence: true
@@ -14,15 +13,35 @@ module Jigsaw
 
     before_save :compile_css
 
-    store_accessor :config, :type, :childrenCount, :rowGap, :colGap, :colGapUnit, :rowGapUnit
+    def unique_area_names
+      return [] unless config["areas"].is_a?(Array)
+      config["areas"].flatten.uniq.reject { |s| s == "." }
+    end
 
-    attribute :col_count,      :integer
-    attribute :row_count,      :integer
-    attribute :children_count, :integer
-    attribute :row_gap,        :integer
-    attribute :row_geight,     :integer
-    attribute :col_width,      :integer
-    attribute :col_gap,        :integer
+    def sync_slots
+      return unless config["areas"].is_a?(Array)
+
+      current_names = unique_area_names
+      existing = slots.reload.index_by(&:area_name)
+
+      # Destroy obsolete slots first (avoid acts_as_list position thrashing)
+      obsolete = existing.reject { |name, _| current_names.include?(name) }
+      obsolete.values.each(&:destroy!)
+      obsolete.keys.each { |name| existing.delete(name) }
+
+      # Create any missing slots
+      current_names.each do |name|
+        unless existing.key?(name)
+          existing[name] = slots.create!(area_name: name)
+        end
+      end
+
+      # Assign final positions in bulk (skip callbacks)
+      current_names.each_with_index do |name, position|
+        slot = existing[name]
+        slot.update_column(:position, position) if slot.position != position
+      end
+    end
 
     private
 
@@ -34,48 +53,25 @@ module Jigsaw
         end
       end
 
-      def default_grid_config
-        {
-          "type" => "grid",
-          "children_count" => 9,
-          "columns" => [
-            { "value" => 1, "unit" => "fr" },
-            { "value" => 1, "unit" => "fr" },
-            { "value" => 1, "unit" => "fr" }
-          ],
-          "rows" => [
-            { "value" => 1, "unit" => "fr" },
-            { "value" => 1, "unit" => "fr" },
-            { "value" => 1, "unit" => "fr" }
-          ],
-          "row_height" => 20,
-          "row_gap" => 8,
-          "row_gap_unit" => "px",
-          "col_gap" => 8,
-          "col_gap_unit" => "px",
-          "areas" => []
-        }
+      def areas_are_rectangular
+        if config.is_a?(Hash) && config["type"] == "grid" && config["areas"].present?
+          config["areas"].flatten.uniq.reject { |s| s == "." }.each do |slot_name|
+            cells = []
+            config["areas"].each_with_index do |row, r|
+              row.each_with_index { |cell, c| cells << [r, c] if cell == slot_name }
+            end
+            rows = cells.map(&:first).uniq.sort
+            cols = cells.map(&:last).uniq.sort
+            expected = rows.product(cols).sort
+            errors.add(:config, "area '#{slot_name}' is not rectangular") unless cells.sort == expected
+          end
+        end
       end
 
-      #def areas_are_rectangular
-      #  if config.is_a?(Hash) && config["type"] == "grid" && config["areas"].present?
-      #    config["areas"].flatten.uniq.reject { |s| s == "." }.each do |slot|
-      #      cells = []
-      #      config["areas"].each_with_index do |row, r|
-      #        row.each_with_index { |cell, c| cells << [r, c] if cell == slot }
-      #      end
-      #      rows = cells.map(&:first).uniq.sort
-      #      cols = cells.map(&:last).uniq.sort
-      #      expected = rows.product(cols).sort
-      #      errors.add(:config, "area '#{slot}' is not rectangular") unless cells.sort == expected
-      #    end
-      #  end
-      #end
-
-      #def compile_css
-      #  generator = config["type"] == "grid" ? GridLayoutGenerator : FlexLayoutGenerator
-      #  self.compiled_css = generator.new(config, id || SecureRandom.hex(4)).call
-      #  self.compiled_digest = Digest::SHA256.hexdigest(compiled_css)
-      #end
+      def compile_css
+        generator = GridLayoutGenerator.new(config, id || SecureRandom.hex(4))
+        self.compiled_css = generator.call
+        self.compiled_digest = Digest::SHA256.hexdigest(compiled_css)
+      end
   end
 end

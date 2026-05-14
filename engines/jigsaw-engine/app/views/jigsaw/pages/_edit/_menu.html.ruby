@@ -1,6 +1,6 @@
 Menu(attached: "top") {
 
-  BackButton(href: custom_pages_path, icon: "arrow left")
+  BackButton(href: pages_path, icon: "arrow left")
 
   MenuItem(header: true) { @page.title }
 

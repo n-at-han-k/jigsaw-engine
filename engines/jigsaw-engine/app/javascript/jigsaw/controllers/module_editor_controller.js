@@ -112,10 +112,10 @@ export default class extends Controller {
     }
 
     try {
-      const resp = await fetch(`/jigsaw/page_modules/${this.moduleIdValue}`, {
+      const resp = await fetch(`/jigsaw/slots/${this.moduleIdValue}`, {
         method: "PATCH", headers,
         body: JSON.stringify({
-          page_module: {
+          slot: {
             data_source: this.sources.data,
             render_source: this.sources.render,
             config: this.sources.config

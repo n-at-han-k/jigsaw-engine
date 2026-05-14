@@ -1,8 +1,8 @@
 require "acts_as_list"
+require "json_schemer"
 require "jigsaw/version"
 require "jigsaw/jsx_compiler"
 require "jigsaw/grid_layout_generator"
-require "jigsaw/flex_layout_generator"
 
 module Jigsaw
   class Engine < ::Rails::Engine

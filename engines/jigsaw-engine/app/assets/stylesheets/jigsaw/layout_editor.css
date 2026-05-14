@@ -10,8 +10,6 @@ html, body {
   background: rgba(0, 0, 0, 0.03);
 }
 
-
-
 [data-controller="layout-editor"] {
   display: flex;
   flex-direction: column;
@@ -39,24 +37,14 @@ html, body {
 .editor-center {
   grid-area: center;
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 60px 1fr;
+  grid-template-rows: 50px 1fr;
   grid-template-areas:
-    "col-controls ."
-    "main row-controls";
+    ". col-controls"
+    "row-controls main";
   gap: 0;
   overflow: auto;
-}
-
-.editor-center.hide-tracks {
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  grid-template-areas: "main";
-}
-
-.editor-center.hide-tracks .track-controls--col,
-.editor-center.hide-tracks .track-controls--row {
-  display: none;
+  padding: 16px;
 }
 
 .editor-output {
@@ -83,7 +71,6 @@ html, body {
   margin: 0 0 12px 0;
 }
 
-/* Sidebar fields (now in right panel) */
 .sidebar-field {
   margin-bottom: 12px;
   display: grid;
@@ -105,7 +92,7 @@ html, body {
 }
 
 .sidebar-input-row input {
-  width: 60px;
+  width: 100%;
   padding: 4px 6px;
   font-size: 13px;
   border: 1px solid #ccc;
@@ -131,30 +118,38 @@ html, body {
 .track-controls--col {
   grid-area: col-controls;
   display: grid;
+  background: #eef;
+  align-items: center;
 }
 
 .track-controls--row {
   grid-area: row-controls;
   display: grid;
+  background: #efe;
+  justify-items: center;
 }
 
 .track-control {
+  position: relative;
   display: flex;
-  gap: 2px;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+  padding: 4px;
 }
 
 .track-controls--row .track-control {
   flex-direction: column;
+  border-bottom: 1px dashed #999;
 }
 
 .track-controls--col .track-control {
-  flex-direction: row;
+  border-right: 1px dashed #999;
 }
 
 .track-value-input {
-  width: 36px;
+  width: 50px;
   padding: 2px 4px;
   font-size: 11px;
   border: 1px solid #ccc;
@@ -167,80 +162,144 @@ html, body {
   color: #999;
 }
 
-.track-unit-btn {
-  padding: 2px 6px;
-  font-size: 10px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background: #f5f5f5;
-  cursor: pointer;
-  min-width: 32px;
-  text-align: center;
+.track-thumb-ew {
+  cursor: ew-resize;
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(50%);
 }
 
-.track-unit-btn:hover {
-  background: #e8e8e8;
+.track-thumb-ns {
+  cursor: ns-resize;
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  transform: translateY(50%);
 }
 
 /* Preview area */
 .preview-main {
   grid-area: main;
   min-height: 300px;
+  position: relative;
 }
 
+.preview-grid {
+  display: grid;
+}
 
 .preview-cell {
   position: relative;
   min-height: 60px;
+  padding: 4px;
+  cursor: pointer;
 }
 
-.cell-number {
+.grid-cell-bg {
   position: absolute;
-  top: 4px;
-  left: 6px;
-  font-size: 10px;
-  font-weight: bold;
-  opacity: 0.6;
-  z-index: 1;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 1px 5px;
-  border-radius: 3px;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 4px;
+  background: #c0cbdc;
+  border-radius: 10px;
+  transition: 0.1s ease-out;
+}
+
+.grid-cell-bg.selected {
+  background: #dedd70;
+}
+
+.grid-cell-bg.selected.combinable {
+  background: #6ec387;
+}
+
+.grid-cell-inner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
 .area-name-input {
   position: absolute;
-  bottom: 4px;
   left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 12px);
-  padding: 2px 4px;
-  font-size: 11px;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: calc(100% - 32px);
+  padding: 4px 8px;
+  font-size: 14px;
   text-align: center;
   border: 1px dashed transparent;
   border-radius: 3px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.6);
   color: #333;
-  z-index: 1;
-  transition: border-color 0.15s, background 0.15s;
+  z-index: 2;
 }
 
 .area-name-input:hover {
   border-color: #aaa;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .area-name-input:focus {
   border-color: #4183c4;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   outline: none;
 }
 
-.area-name-input::placeholder {
-  color: #bbb;
+.grid-action-btn {
+  position: absolute;
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid #000;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 3;
 }
 
-/* Module placeholder */
+.grid-action-btn.split {
+  top: 4px;
+  right: 4px;
+  background: #000;
+  color: #fff;
+}
+
+.grid-action-btn.combine {
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #000;
+}
+
+.grid-action-btn.track-remove,
+.grid-action-btn.track-insert {
+  position: static;
+  width: 24px;
+  height: 18px;
+  padding: 0;
+  background: #fff;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Page editor (legacy support) */
+.preview-grid {
+  position: relative;
+}
+
 .module-placeholder {
   background: #e8e8e8;
   width: 100%;
@@ -250,143 +309,4 @@ html, body {
   justify-content: center;
   font-size: 12px;
   color: #888;
-}
-
-/* Dashed grid overlay */
-.preview-grid {
-  position: relative;
-}
-
-.grid-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.grid-overlay-cell {
-  border: 1px dashed rgba(0, 0, 0, 0.15);
-}
-
-/* Type toggle */
-.type-toggle {
-  gap: 0 !important;
-}
-
-.type-btn {
-  flex: 1;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: bold;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  cursor: pointer;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.type-btn:first-child {
-  border-radius: 3px 0 0 3px;
-}
-
-.type-btn:last-child {
-  border-radius: 0 3px 3px 0;
-  border-left: none;
-}
-
-.type-btn.active {
-  background: #4183c4;
-  color: #fff;
-  border-color: #4183c4;
-}
-
-/* Flex child controls */
-.flex-child {
-  background: #e8e8e8;
-  border-radius: 4px;
-  padding: 8px;
-  min-width: 80px;
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.flex-child-controls {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr auto;
-  gap: 4px;
-  align-items: center;
-  font-size: 11px;
-}
-
-.flex-child-controls .flex-label {
-  font-size: 10px;
-  color: #666;
-  font-weight: bold;
-}
-
-.flex-child-controls input[type="text"] {
-  width: 32px;
-  padding: 2px 4px;
-  font-size: 11px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  text-align: center;
-}
-
-.flex-child-controls input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-}
-
-.flex-basis-label {
-  font-size: 10px;
-  color: #888;
-}
-
-/* Area name overlay (on top of live modules in page editor) */
-.area-name-overlay {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 12px);
-  padding: 2px 4px;
-  font-size: 11px;
-  text-align: center;
-  border: 1px dashed transparent;
-  border-radius: 3px;
-  background: transparent;
-  color: #333;
-  z-index: 10;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.area-name-overlay:hover {
-  border-color: #aaa;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.area-name-overlay:focus {
-  border-color: #4183c4;
-  background: rgba(255, 255, 255, 0.9);
-  outline: none;
-}
-
-.area-name-overlay::placeholder {
-  color: #bbb;
-}
-
-/* Empty cell (unoccupied grid area in page editor) */
-.empty-cell {
-  border: 2px dashed #ccc;
-  border-radius: 4px;
-  min-height: 60px;
-}
-
-.empty-cell .module-placeholder {
-  background: transparent;
-  color: #bbb;
-  font-style: italic;
 }

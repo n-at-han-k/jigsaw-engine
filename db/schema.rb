@@ -10,31 +10,32 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_013943) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_145936) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-
-  create_table "jigsaw_custom_pages", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "path", null: false
-    t.string "title", null: false
-    t.datetime "updated_at", null: false
-    t.index ["path"], name: "index_jigsaw_custom_pages_on_path", unique: true
-  end
 
   create_table "jigsaw_layouts", force: :cascade do |t|
     t.text "compiled_css"
     t.string "compiled_digest"
     t.jsonb "config", default: {}, null: false
     t.datetime "created_at", null: false
-    t.bigint "custom_page_id"
     t.string "name", null: false
+    t.bigint "page_id"
     t.datetime "updated_at", null: false
-    t.index ["custom_page_id"], name: "index_jigsaw_layouts_on_custom_page_id"
     t.index ["name"], name: "index_jigsaw_layouts_on_name", unique: true
+    t.index ["page_id"], name: "index_jigsaw_layouts_on_page_id"
   end
 
-  create_table "jigsaw_page_modules", force: :cascade do |t|
+  create_table "jigsaw_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "path", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["path"], name: "index_jigsaw_pages_on_path", unique: true
+  end
+
+  create_table "jigsaw_slots", force: :cascade do |t|
+    t.string "area_name"
     t.jsonb "config", default: {}
     t.datetime "created_at", null: false
     t.string "data_compiled_digest"
@@ -48,9 +49,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_013943) do
     t.text "render_source"
     t.jsonb "shares", default: []
     t.datetime "updated_at", null: false
-    t.index ["layout_id"], name: "index_jigsaw_page_modules_on_layout_id"
+    t.index ["layout_id", "area_name"], name: "index_jigsaw_slots_on_layout_id_and_area_name", unique: true
+    t.index ["layout_id"], name: "index_jigsaw_slots_on_layout_id"
   end
 
-  add_foreign_key "jigsaw_layouts", "jigsaw_custom_pages", column: "custom_page_id"
-  add_foreign_key "jigsaw_page_modules", "jigsaw_layouts", column: "layout_id"
+  add_foreign_key "jigsaw_layouts", "jigsaw_pages", column: "page_id"
+  add_foreign_key "jigsaw_slots", "jigsaw_layouts", column: "layout_id"
 end

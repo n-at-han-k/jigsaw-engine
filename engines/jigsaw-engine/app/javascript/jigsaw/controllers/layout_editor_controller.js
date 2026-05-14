@@ -1,28 +1,71 @@
 import { Controller } from "@hotwired/stimulus"
-import { generateLayoutCss, generateLayoutHtml } from "jigsaw/lib/generate_layout_css"
+
+let areaIdCounter = 0
+function generateAreaId() {
+  areaIdCounter++
+  return `a-${Date.now().toString(36).slice(-4)}${areaIdCounter}`
+}
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj))
+}
 
 export default class extends Controller {
-  static targets = ["preview", "cssOutput", "htmlOutput", "jsonOutput", "configHidden", "panel", "gridFields", "flexFields"]
+  static targets = ["preview", "cssOutput", "htmlOutput", "jsonOutput", "configHidden", "panel"]
 
   connect() {
-    this.rebuild()
+    this._loadConfig()
+    this._render()
   }
 
-  rebuild() {
-    const config = this._readConfig()
-    const css = generateLayoutCss(config)
-    const html = generateLayoutHtml(config)
+  _loadConfig() {
+    try {
+      this.state = JSON.parse(this.configHiddenTarget.value)
+    } catch {
+      this.state = this._defaultConfig()
+    }
+    if (!this.state.areas || !this.state.columns || !this.state.rows) {
+      this.state = this._defaultConfig()
+    }
+    this.selectedAreas = new Set()
+  }
 
-    this._applyPreview(config)
-    this._applyOutput(css, html, config)
-
-    if (this.hasConfigHiddenTarget) {
-      this.configHiddenTarget.value = JSON.stringify(config)
+  _defaultConfig() {
+    return {
+      type: "grid",
+      areas: [
+        ["header", "header", "header"],
+        ["left", "main", "right"],
+        ["footer", "footer", "footer"]
+      ],
+      columns: ["120px", "4fr", "1fr"],
+      rows: ["160px", "1fr", "80px"],
+      gridWidth: "100%",
+      gridHeight: "100%",
+      rowGap: 8,
+      colGap: 8,
+      rowGapUnit: "px",
+      colGapUnit: "px"
     }
   }
 
-  updateOutput() {
-    this.rebuild()
+  rebuild() {
+    this._readSidebarFields()
+    this._render()
+  }
+
+  _readSidebarFields() {
+    const val = (id) => this.element.querySelector(`#${id}`)?.value
+    if (val("gridWidth")) this.state.gridWidth = val("gridWidth")
+    if (val("gridHeight")) this.state.gridHeight = val("gridHeight")
+    const rowGap = parseFloat(val("rowGap"))
+    if (!isNaN(rowGap)) this.state.rowGap = rowGap
+    const colGap = parseFloat(val("colGap"))
+    if (!isNaN(colGap)) this.state.colGap = colGap
+    const rowGapUnit = this.element.querySelector("#rowGapUnit")?.textContent.trim()
+    if (rowGapUnit) this.state.rowGapUnit = rowGapUnit
+    const colGapUnit = this.element.querySelector("#colGapUnit")?.textContent.trim()
+    if (colGapUnit) this.state.colGapUnit = colGapUnit
   }
 
   cycleUnit(event) {
@@ -33,284 +76,214 @@ export default class extends Controller {
     this.rebuild()
   }
 
-  cycleRowsMode(event) {
-    const btn = event.currentTarget
-    const modes = (btn.dataset.units || "number,auto-fit,auto-fill").split(",")
-    const idx = modes.indexOf(btn.textContent.trim())
-    btn.textContent = modes[(idx + 1) % modes.length]
-    const rowCountInput = this.element.querySelector("#rowCount")
-    if (rowCountInput) {
-      rowCountInput.disabled = btn.textContent.trim() !== "number"
-    }
-    this.rebuild()
-  }
-
-  setTypeGrid() {
-    this._setType("grid")
-  }
-
-  setTypeFlex() {
-    this._setType("flex")
-  }
-
-  _setType(type) {
-    const gridBtn = this.element.querySelector("#typeGrid")
-    const flexBtn = this.element.querySelector("#typeFlex")
-
-    if (type === "grid") {
-      gridBtn.classList.add("active")
-      flexBtn.classList.remove("active")
-      if (this.hasGridFieldsTarget) this.gridFieldsTarget.style.display = ""
-      if (this.hasFlexFieldsTarget) this.flexFieldsTarget.style.display = "none"
-    } else {
-      gridBtn.classList.remove("active")
-      flexBtn.classList.add("active")
-      if (this.hasGridFieldsTarget) this.gridFieldsTarget.style.display = "none"
-      if (this.hasFlexFieldsTarget) this.flexFieldsTarget.style.display = ""
-    }
-
-    this.rebuild()
-  }
-
   togglePanel() {
     const page = this.element.querySelector(".editor-page")
     page.classList.toggle("full-width")
   }
 
-  toggleTracks() {
-    const center = this.element.querySelector(".editor-center")
-    center.classList.toggle("hide-tracks")
+  // --- Grid operations (ported from grid-generator) ---
+
+  insertColumn(index) {
+    const targetIndex = index + 1
+    const areaId = generateAreaId()
+
+    this.state.columns.splice(targetIndex, 0, "1fr")
+    this.state.areas = this.state.areas.map((area) => {
+      const areaName = area[index]
+      if (areaName === area[targetIndex]) {
+        area = area.map((col, i) => (col === areaName ? `${col}-${i > index ? 1 : 0}` : col))
+      }
+      const newArea = [...area]
+      newArea.splice(targetIndex, 0, areaId)
+      return newArea
+    })
+    this.selectedAreas.clear()
+    this._render()
   }
 
-  // --- Private: read state from DOM ---
-
-  _currentType() {
-    const flexBtn = this.element.querySelector("#typeFlex")
-    return flexBtn && flexBtn.classList.contains("active") ? "flex" : "grid"
+  removeColumn(index) {
+    if (this.state.columns.length <= 1) return
+    this.state.columns.splice(index, 1)
+    this.state.areas = this.state.areas.map((area) => {
+      const newArea = [...area]
+      newArea.splice(index, 1)
+      return newArea
+    })
+    this.selectedAreas.clear()
+    this._render()
   }
 
-  _readConfig() {
-    const type = this._currentType()
-    if (type === "flex") {
-      return this._readFlexConfig()
+  insertRow(index) {
+    const targetIndex = index + 1
+    const areaId = generateAreaId()
+    const prevArea = this.state.areas[index]
+    const nextArea = this.state.areas[targetIndex]
+
+    this.state.rows.splice(targetIndex, 0, "1fr")
+
+    if (prevArea && nextArea) {
+      prevArea.forEach((areaName, c) => {
+        if (nextArea[c] !== areaName) return
+        this.state.areas.forEach((row, i) => {
+          const col = row[c]
+          row[c] = col === areaName ? `${col}-${i > index ? 1 : 0}` : col
+        })
+      })
     }
-    return this._readGridConfig()
+
+    const newRow = Array.from({ length: this.state.columns.length }, () => areaId)
+    const newAreas = [...this.state.areas]
+    newAreas.splice(targetIndex, 0, newRow)
+    this.state.areas = newAreas
+
+    this.selectedAreas.clear()
+    this._render()
   }
 
-  _readGridConfig() {
-    const val = (id) => this.element.querySelector(`#${id}`)?.value || ""
-    const unit = (id) => this.element.querySelector(`#${id}`)?.textContent.trim() || "fr"
+  removeRow(index) {
+    if (this.state.rows.length <= 1) return
+    this.state.rows.splice(index, 1)
+    const newAreas = [...this.state.areas]
+    newAreas.splice(index, 1)
+    this.state.areas = newAreas
+    this.selectedAreas.clear()
+    this._render()
+  }
 
-    const rowsMode = unit("rowsMode")
-    const rows = parseInt(val("rowCount")) || 3
-    const cols = parseInt(val("colCount")) || 3
-    const childrenCount = parseInt(val("childrenCount")) || (rows * cols)
-    const defaultRowTrack = { value: parseFloat(val("rowHeight")) || 1, unit: unit("rowHeightUnit") }
-    const defaultColTrack = { value: parseFloat(val("colWidth")) || 1, unit: unit("colWidthUnit") }
+  splitArea(areaName) {
+    let i = 0
+    this.state.areas = this.state.areas.map((row) =>
+      row.map((col) => (col === areaName ? `${col}-${i++}` : col))
+    )
+    this.selectedAreas.clear()
+    this._render()
+  }
 
-    let rowTracks
-    if (rowsMode === "auto-fit" || rowsMode === "auto-fill") {
-      rowTracks = { repeat: rowsMode, value: defaultRowTrack.value, unit: defaultRowTrack.unit }
+  combineArea(areaName) {
+    this.state.areas = this.state.areas.map((row) =>
+      row.map((col) => (this.selectedAreas.has(col) ? areaName : col))
+    )
+    this.selectedAreas.clear()
+    this._render()
+  }
+
+  renameArea(oldName, newName) {
+    if (newName.match(/^[\d|.]/)) return
+    if (newName.trim() === "") return
+    this.state.areas = this.state.areas.map((row) =>
+      row.map((col) => (col === oldName ? newName : col))
+    )
+    this.selectedAreas.clear()
+    this._render()
+  }
+
+  updateColumn(index, value) {
+    this.state.columns[index] = value
+    this._render()
+  }
+
+  updateRow(index, value) {
+    this.state.rows[index] = value
+    this._render()
+  }
+
+  toggleSelectArea(areaName) {
+    if (this.selectedAreas.has(areaName)) {
+      this.selectedAreas.delete(areaName)
     } else {
-      rowTracks = this._readTracks("row", rows, defaultRowTrack)
+      this.selectedAreas.add(areaName)
     }
-    const colTracks = this._readTracks("col", cols, defaultColTrack)
-
-    const areas = this._readAreas(rows, cols)
-    const hasAreas = areas.flat().some(a => a !== ".")
-
-    const config = {
-      type: "grid",
-      childrenCount,
-      rows: rowTracks,
-      columns: colTracks,
-      rowGap: val("rowGap") !== "" ? parseFloat(val("rowGap")) : 8,
-      rowGapUnit: unit("rowGapUnit"),
-      colGap: val("colGap") !== "" ? parseFloat(val("colGap")) : 8,
-      colGapUnit: unit("colGapUnit"),
-      direction: unit("gridDirection"),
-      emptySpace: unit("gridEmptySpace"),
-      containerAlignment: {
-        horizontal: unit("gridContainerH"),
-        vertical: unit("gridContainerV")
-      },
-      childrenAlignment: {
-        horizontal: unit("gridChildrenH"),
-        vertical: unit("gridChildrenV")
-      }
-    }
-
-    const gridAreasMode = unit("gridAreasMode")
-    if (gridAreasMode !== "names") {
-      config.gridAreasMode = gridAreasMode
-    }
-
-    if (hasAreas) config.areas = areas
-
-    return config
+    this._renderGrid()
   }
 
-  _readFlexConfig() {
-    const val = (id) => this.element.querySelector(`#${id}`)?.value || ""
-    const unit = (id) => this.element.querySelector(`#${id}`)?.textContent.trim() || ""
-
-    const childrenCount = parseInt(val("childrenCount")) || 3
-
-    // Read children from stored config
-    let children = []
-    try {
-      const prev = JSON.parse(this.configHiddenTarget.value)
-      if (prev.children) children = prev.children
-    } catch {}
-
-    // Ensure children array matches count
-    while (children.length < childrenCount) {
-      children.push({ grow: 0, shrink: 1, basis: "auto", margin: false })
-    }
-    children = children.slice(0, childrenCount)
-
-    // Read from per-child inputs in preview if they exist
-    for (let i = 0; i < childrenCount; i++) {
-      const growInput = this.previewTarget.querySelector(`.flex-child-grow[data-index="${i}"]`)
-      const shrinkInput = this.previewTarget.querySelector(`.flex-child-shrink[data-index="${i}"]`)
-      const marginInput = this.previewTarget.querySelector(`.flex-child-margin[data-index="${i}"]`)
-      if (growInput) children[i].grow = parseFloat(growInput.value) || 0
-      if (shrinkInput) children[i].shrink = parseFloat(shrinkInput.value) || 1
-      if (marginInput) children[i].margin = marginInput.checked
-    }
-
-    const config = {
-      type: "flex",
-      childrenCount,
-      gap: val("flexGap") !== "" ? parseFloat(val("flexGap")) : 16,
-      gapUnit: unit("flexGapUnit") || "px",
-      direction: unit("flexDirection") || "row",
-      wrap: unit("flexWrap") || "nowrap",
-      containerAlignment: {
-        mainAxis: unit("flexMainAxis") || "flex-start",
-        crossAxis: unit("flexCrossAxis") || "stretch"
-      },
-      children
-    }
-
-    return config
+  get uniqueAreaKeys() {
+    return [...new Set(this.state.areas.flat())].filter(a => a !== ".")
   }
 
-  _readTracks(axis, count, defaultTrack) {
-    let storedTracks = []
-    try {
-      const prev = JSON.parse(this.configHiddenTarget.value)
-      const tracks = axis === "row" ? (prev.rows || []) : (prev.columns || [])
-      if (Array.isArray(tracks)) storedTracks = tracks
-    } catch {}
-
-    const input = this.previewTarget.querySelector(`.track-value-input[data-axis="${axis}"]`)
-    if (input) {
-      const tracks = []
-      for (let i = 0; i < count; i++) {
-        const inp = this.previewTarget.querySelector(`.track-value-input[data-axis="${axis}"][data-index="${i}"]`)
-        const btn = this.previewTarget.querySelector(`.track-unit-btn[data-axis="${axis}"][data-index="${i}"]`)
-        if (inp && btn) {
-          tracks.push({ value: parseFloat(inp.value) || 1, unit: btn.textContent.trim() })
-        } else {
-          tracks.push({ ...defaultTrack })
-        }
-      }
-      const storedAllSame = storedTracks.length > 0 && storedTracks.every(t =>
-        t.value === storedTracks[0].value && t.unit === storedTracks[0].unit
-      )
-      const tracksMatchStored = tracks.length === storedTracks.length && tracks.every((t, i) =>
-        t.value === storedTracks[i]?.value && t.unit === storedTracks[i]?.unit
-      )
-      if (storedAllSame && tracksMatchStored &&
-          (defaultTrack.value !== storedTracks[0].value || defaultTrack.unit !== storedTracks[0].unit)) {
-        return Array.from({ length: count }, () => ({ ...defaultTrack }))
-      }
-      return tracks
-    }
-
-    if (storedTracks.length === count) {
-      return storedTracks.map(t => ({ value: t.value, unit: t.unit }))
-    }
-    return Array.from({ length: count }, () => ({ ...defaultTrack }))
+  get areaCount() {
+    return this.state.areas.flat().reduce((map, area) => {
+      map[area] = (map[area] || 0) + 1
+      return map
+    }, {})
   }
 
-  _readAreas(rows, cols) {
-    let areas
-    try {
-      const prev = JSON.parse(this.configHiddenTarget.value)
-      areas = prev.areas
-    } catch {}
+  get isCombinable() {
+    const keys = [...this.selectedAreas]
+    if (keys.length < 2) return false
 
-    if (!areas || areas.length !== rows || (areas[0] && areas[0].length !== cols)) {
-      areas = Array.from({ length: rows }, (_, r) =>
-        Array.from({ length: cols }, (_, c) => `c${r * cols + c + 1}`)
-      )
-    }
+    const c = this.state.columns.length
+    const flat = this.state.areas.flat()
 
-    this.previewTarget.querySelectorAll(".area-name-input[data-row]").forEach(input => {
-      const r = parseInt(input.dataset.row)
-      const c = parseInt(input.dataset.col)
-      const name = input.value.trim()
-      if (r < rows && c < cols) {
-        areas[r][c] = name || `c${r * cols + c + 1}`
-      }
+    const minCoords = keys.map((area) => {
+      const idx = flat.indexOf(area)
+      return [Math.floor(idx % c), Math.floor(idx / c)]
+    })
+    const maxCoords = keys.map((area) => {
+      const idx = flat.lastIndexOf(area)
+      return [Math.floor(idx % c), Math.floor(idx / c)]
     })
 
-    return areas
-  }
+    const min = minCoords.reduce((prev, curr) => [
+      Math.min(prev[0], curr[0]),
+      Math.min(prev[1], curr[1])
+    ])
+    const max = maxCoords.reduce((prev, curr) => [
+      Math.max(prev[0], curr[0]),
+      Math.max(prev[1], curr[1])
+    ])
 
-  // --- Private: apply state to DOM ---
-
-  _applyPreview(config) {
-    if (config.type === "flex") {
-      this._applyFlexPreview(config)
-    } else {
-      this._applyGridPreview(config)
+    for (let row = min[1]; row <= max[1]; row++) {
+      for (let col = min[0]; col <= max[0]; col++) {
+        if (!this.selectedAreas.has(this.state.areas[row][col])) return false
+      }
     }
+    return true
   }
 
-  _applyGridPreview(config) {
+  // --- Rendering ---
+
+  _render() {
+    this._renderPreview()
+    this._renderOutput()
+    this.configHiddenTarget.value = JSON.stringify(this.state)
+  }
+
+  _renderPreview() {
     const el = this.previewTarget
     el.innerHTML = ""
 
-    const rows = Array.isArray(config.rows) ? config.rows.length : (parseInt(this.element.querySelector("#rowCount")?.value) || 3)
-    const cols = config.columns.length
-
-    // Column track controls
     const colControls = document.createElement("div")
     colControls.className = "track-controls track-controls--col"
-    colControls.style.gridTemplateColumns = config.columns.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
-    colControls.style.columnGap = `${config.colGap}${config.colGapUnit}`
-    config.columns.forEach((t, i) => colControls.appendChild(this._trackControl("col", i, t)))
+    colControls.style.gridTemplateColumns = this.state.columns.join(" ")
+    colControls.style.columnGap = `${this.state.colGap}${this.state.colGapUnit || "px"}`
+    this.state.columns.forEach((value, i) => {
+      colControls.appendChild(this._trackControl("col", i, value))
+    })
     el.appendChild(colControls)
 
-    // Main preview area
     const main = document.createElement("div")
     main.className = "preview-main"
 
     const grid = document.createElement("section")
     grid.className = "preview-grid"
-    Object.assign(grid.style, {
-      display: "grid",
-      width: "100%",
-      gap: `${config.rowGap}${config.rowGapUnit} ${config.colGap}${config.colGapUnit}`,
-    })
-
-    const rowTracks = Array.isArray(config.rows) ? config.rows : Array.from({ length: rows }, () => ({ value: config.rows.value, unit: config.rows.unit }))
-    grid.style.gridTemplateRows = rowTracks.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
-    grid.style.gridTemplateColumns = config.columns.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
-
-    const areas = config.areas || Array.from({ length: rows }, (_, r) =>
-      Array.from({ length: cols }, (_, c) => `c${r * cols + c + 1}`)
-    )
-    grid.style.gridTemplateAreas = areas.map(row => `"${row.join(" ")}"`).join(" ")
+    grid.style.display = "grid"
+    grid.style.width = this.state.gridWidth || "100%"
+    grid.style.height = this.state.gridHeight || "100%"
+    grid.style.gridTemplateColumns = this.state.columns.join(" ")
+    grid.style.gridTemplateRows = this.state.rows.join(" ")
+    grid.style.gap = `${this.state.rowGap}${this.state.rowGapUnit || "px"} ${this.state.colGap}${this.state.colGapUnit || "px"}`
+    if (this.state.areas) {
+      grid.style.gridTemplateAreas = this.state.areas.map(row => `"${row.join(" ")}"`).join(" ")
+    }
 
     const seen = new Set()
     let moduleIndex = 0
+    const rows = this.state.areas.length
+    const cols = this.state.columns.length
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const name = areas[r][c]
+        const name = this.state.areas[r][c]
         if (name === "." || seen.has(name)) continue
         seen.add(name)
         moduleIndex++
@@ -319,175 +292,182 @@ export default class extends Controller {
         cell.className = "preview-cell"
         cell.style.gridArea = name
 
-        const number = document.createElement("span")
-        number.className = "cell-number"
-        number.textContent = moduleIndex
-        cell.appendChild(number)
+        const isMultiple = this.areaCount[name] > 1
+        const isSelected = this.selectedAreas.has(name)
 
-        const placeholder = document.createElement("div")
-        placeholder.className = "module-placeholder"
-        placeholder.textContent = `Module ${moduleIndex}`
-        cell.appendChild(placeholder)
+        const bg = document.createElement("div")
+        bg.className = `grid-cell-bg${isSelected ? " selected" : ""}${isSelected && this.isCombinable ? " combinable" : ""}`
+        cell.appendChild(bg)
+
+        const inner = document.createElement("div")
+        inner.className = "grid-cell-inner"
 
         const input = document.createElement("input")
         input.type = "text"
-        input.className = "area-name-input"
-        input.value = name.startsWith("c") && /^c\d+$/.test(name) ? "" : name
-        input.placeholder = "."
-        input.dataset.row = r
-        input.dataset.col = c
-        input.dataset.action = "change->layout-editor#updateOutput"
-        cell.appendChild(input)
+        input.className = "area-name-input focus-input"
+        input.value = name
+        input.addEventListener("input", (e) => {
+          this.renameArea(name, e.target.value)
+        })
+        inner.appendChild(input)
 
+        cell.addEventListener("click", (e) => {
+          if (e.target === input) return
+          e.stopPropagation()
+          this.toggleSelectArea(name)
+        })
+
+        if (isMultiple) {
+          const splitBtn = document.createElement("button")
+          splitBtn.className = "grid-action-btn split"
+          splitBtn.textContent = "Split"
+          splitBtn.addEventListener("click", (e) => {
+            e.stopPropagation()
+            this.splitArea(name)
+          })
+          inner.appendChild(splitBtn)
+        }
+
+        if (isSelected && this.isCombinable) {
+          const combineBtn = document.createElement("button")
+          combineBtn.className = "grid-action-btn combine"
+          combineBtn.textContent = "Combine"
+          combineBtn.addEventListener("click", (e) => {
+            e.stopPropagation()
+            this.combineArea(name)
+          })
+          inner.appendChild(combineBtn)
+        }
+
+        cell.appendChild(inner)
         grid.appendChild(cell)
       }
     }
 
-    // Grid overlay
-    const overlay = document.createElement("div")
-    overlay.className = "grid-overlay"
-    Object.assign(overlay.style, {
-      display: "grid",
-      gridTemplateRows: grid.style.gridTemplateRows,
-      gridTemplateColumns: grid.style.gridTemplateColumns,
-      gap: grid.style.gap,
-    })
-    for (let i = 0; i < rows * cols; i++) {
-      const cell = document.createElement("div")
-      cell.className = "grid-overlay-cell"
-      overlay.appendChild(cell)
-    }
-    grid.appendChild(overlay)
-
     main.appendChild(grid)
     el.appendChild(main)
 
-    // Row track controls
     const rowControls = document.createElement("div")
     rowControls.className = "track-controls track-controls--row"
-    rowControls.style.gridTemplateRows = rowTracks.map(t => t.unit === "auto" ? "auto" : `${t.value}${t.unit}`).join(" ")
-    rowControls.style.rowGap = `${config.rowGap}${config.rowGapUnit}`
-    rowTracks.forEach((t, i) => rowControls.appendChild(this._trackControl("row", i, t)))
+    rowControls.style.gridTemplateRows = this.state.rows.join(" ")
+    rowControls.style.rowGap = `${this.state.rowGap}${this.state.rowGapUnit || "px"}`
+    this.state.rows.forEach((value, i) => {
+      rowControls.appendChild(this._trackControl("row", i, value))
+    })
     el.appendChild(rowControls)
   }
 
-  _applyFlexPreview(config) {
-    const el = this.previewTarget
-    el.innerHTML = ""
-
-    const container = document.createElement("section")
-    container.className = "preview-grid preview-flex"
-    Object.assign(container.style, {
-      display: "flex",
-      width: "100%",
-      gap: `${config.gap}${config.gapUnit}`,
-      flexDirection: config.direction !== "row" ? config.direction : "",
-      flexWrap: config.wrap !== "nowrap" ? config.wrap : "",
-    })
-
-    const children = config.children || []
-    for (let i = 0; i < config.childrenCount; i++) {
-      const child = children[i] || { grow: 0, shrink: 1, basis: "auto", margin: false }
-
-      const cell = document.createElement("div")
-      cell.className = "preview-cell flex-child"
-      if (child.grow > 0) cell.style.flexGrow = child.grow
-      if (child.shrink !== 1) cell.style.flexShrink = child.shrink
-      if (child.margin) cell.style.marginLeft = "auto"
-
-      // Child controls
-      const controls = document.createElement("div")
-      controls.className = "flex-child-controls"
-
-      // flex: grow shrink basis
-      const flexLabel = document.createElement("label")
-      flexLabel.textContent = "flex:"
-      flexLabel.className = "flex-label"
-      controls.appendChild(flexLabel)
-
-      const growInput = document.createElement("input")
-      growInput.type = "text"
-      growInput.className = "flex-child-grow track-value-input"
-      growInput.value = child.grow
-      growInput.dataset.index = i
-      growInput.dataset.action = "input->layout-editor#rebuild"
-      controls.appendChild(growInput)
-
-      const shrinkInput = document.createElement("input")
-      shrinkInput.type = "text"
-      shrinkInput.className = "flex-child-shrink track-value-input"
-      shrinkInput.value = child.shrink
-      shrinkInput.dataset.index = i
-      shrinkInput.dataset.action = "input->layout-editor#rebuild"
-      controls.appendChild(shrinkInput)
-
-      const basisSpan = document.createElement("span")
-      basisSpan.className = "flex-basis-label"
-      basisSpan.textContent = child.basis
-      controls.appendChild(basisSpan)
-
-      // margin checkbox
-      const marginLabel = document.createElement("label")
-      marginLabel.textContent = "margin:"
-      marginLabel.className = "flex-label"
-      controls.appendChild(marginLabel)
-
-      const marginCheck = document.createElement("input")
-      marginCheck.type = "checkbox"
-      marginCheck.className = "flex-child-margin"
-      marginCheck.checked = child.margin
-      marginCheck.dataset.index = i
-      marginCheck.dataset.action = "change->layout-editor#rebuild"
-      controls.appendChild(marginCheck)
-
-      cell.appendChild(controls)
-
-      const placeholder = document.createElement("div")
-      placeholder.className = "module-placeholder"
-      placeholder.textContent = `Module ${i + 1}`
-      cell.appendChild(placeholder)
-
-      const number = document.createElement("span")
-      number.className = "cell-number"
-      number.textContent = i + 1
-      cell.appendChild(number)
-
-      container.appendChild(cell)
-    }
-
-    el.appendChild(container)
+  _renderGrid() {
+    this._renderPreview()
+    this._renderOutput()
+    this.configHiddenTarget.value = JSON.stringify(this.state)
   }
 
-  _trackControl(axis, index, track) {
+  _trackControl(axis, index, value) {
     const wrapper = document.createElement("div")
     wrapper.className = "track-control"
 
     const input = document.createElement("input")
     input.type = "text"
     input.className = "track-value-input"
-    input.value = track.unit === "auto" ? "" : track.value
-    input.disabled = track.unit === "auto"
+    input.value = value
     input.dataset.axis = axis
     input.dataset.index = index
-    input.dataset.action = "input->layout-editor#rebuild"
+    input.addEventListener("input", () => {
+      if (axis === "col") this.updateColumn(index, input.value)
+      else this.updateRow(index, input.value)
+    })
 
-    const btn = document.createElement("button")
-    btn.type = "button"
-    btn.className = "track-unit-btn"
-    btn.textContent = track.unit
-    btn.dataset.axis = axis
-    btn.dataset.index = index
-    btn.dataset.units = "fr,px,auto"
-    btn.dataset.action = "click->layout-editor#cycleUnit"
+    const removeBtn = document.createElement("button")
+    removeBtn.type = "button"
+    removeBtn.className = "grid-action-btn track-remove"
+    removeBtn.textContent = "-"
+    removeBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (axis === "col") this.removeColumn(index)
+      else this.removeRow(index)
+    })
+
+    const insertBtn = document.createElement("button")
+    insertBtn.type = "button"
+    insertBtn.className = "grid-action-btn track-insert"
+    insertBtn.textContent = "+"
+    insertBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (axis === "col") this.insertColumn(index)
+      else this.insertRow(index)
+    })
 
     wrapper.appendChild(input)
-    wrapper.appendChild(btn)
+    wrapper.appendChild(removeBtn)
+    wrapper.appendChild(insertBtn)
+
+    if (axis === "col") {
+      const thumb = document.createElement("div")
+      thumb.className = "track-thumb-ew"
+      thumb.draggable = true
+      let startX = 0, startWidth = 0
+      thumb.addEventListener("dragstart", (e) => {
+        startX = e.clientX
+        startWidth = wrapper.offsetWidth
+      })
+      thumb.addEventListener("drag", (e) => {
+        if (e.x === 0 && e.y === 0) return
+        const newWidth = Math.max(20, startWidth - startX + e.clientX)
+        this.updateColumn(index, `${newWidth}px`)
+      })
+      wrapper.appendChild(thumb)
+    } else {
+      const thumb = document.createElement("div")
+      thumb.className = "track-thumb-ns"
+      thumb.draggable = true
+      let startY = 0, startHeight = 0
+      thumb.addEventListener("dragstart", (e) => {
+        startY = e.clientY
+        startHeight = wrapper.offsetHeight
+      })
+      thumb.addEventListener("drag", (e) => {
+        if (e.x === 0 && e.y === 0) return
+        const newHeight = Math.max(20, startHeight - startY + e.clientY)
+        this.updateRow(index, `${newHeight}px`)
+      })
+      wrapper.appendChild(thumb)
+    }
+
     return wrapper
   }
 
-  _applyOutput(css, html, config) {
+  _renderOutput() {
+    const css = this._generateCss()
+    const html = this._generateHtml()
+
     if (this.hasCssOutputTarget) this.cssOutputTarget.textContent = css
     if (this.hasHtmlOutputTarget) this.htmlOutputTarget.textContent = html
-    if (this.hasJsonOutputTarget) this.jsonOutputTarget.textContent = JSON.stringify(config, null, 2)
+    if (this.hasJsonOutputTarget) this.jsonOutputTarget.textContent = JSON.stringify(this.state, null, 2)
+  }
+
+  _generateCss() {
+    const s = this.state
+    let css = `.container {\n  display: grid;\n`
+    css += `  width: ${s.gridWidth || "100%"};\n`
+    css += `  height: ${s.gridHeight || "100%"};\n`
+    css += `  grid-template-areas: ${s.areas.map(row => `"${row.join(" ")}"`).join("\n    ")};\n`
+    css += `  grid-template-columns: ${s.columns.join(" ")};\n`
+    css += `  grid-template-rows: ${s.rows.join(" ")};\n`
+    css += `  gap: ${s.rowGap}${s.rowGapUnit || "px"} ${s.colGap}${s.colGapUnit || "px"};\n`
+    css += `}\n`
+
+    const uniqueAreas = [...new Set(s.areas.flat())].filter(a => a !== ".")
+    for (const name of uniqueAreas) {
+      css += `\n.${name} {\n  grid-area: ${name};\n}`
+    }
+
+    return css
+  }
+
+  _generateHtml() {
+    const uniqueAreas = [...new Set(this.state.areas.flat())].filter(a => a !== ".")
+    const children = uniqueAreas.map(name => `  <div class="${name}">${name}</div>`).join("\n")
+    return `<div class="container">\n${children}\n</div>`
   }
 }
