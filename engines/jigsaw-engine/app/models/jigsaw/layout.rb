@@ -16,6 +16,21 @@ module Jigsaw
       :colGapUnit,
     )
 
+    def config=(val)
+      val = JSON.parse(val) if val.is_a?(String)
+      super
+    end
+
+    def rowGap=(val)
+      val = val.to_i if val.is_a?(String)
+      super
+    end
+
+    def colGap=(val)
+      val = val.to_i if val.is_a?(String)
+      super
+    end
+
     validates :name, presence: true, uniqueness: true
     validates :config, presence: true
     validate :config_valid_per_schema
