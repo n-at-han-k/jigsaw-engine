@@ -3,7 +3,15 @@ import { createRoot } from "react-dom/client"
 import MonacoEditor from "@monaco-editor/react"
 import { X } from "lucide-react"
 
-function Editor({ openFiles, activeFile, fileContents, closeFile, setActiveFile, updateFileContent }) {
+function Editor({
+  openFiles,
+  activeFile,
+  fileContents,
+  closeFile,
+  setActiveFile,
+  updateFileContent
+}) {
+
   const editorRef = useRef(null)
 
   const handleEditorChange = async (value) => {
@@ -22,6 +30,9 @@ function Editor({ openFiles, activeFile, fileContents, closeFile, setActiveFile,
   const getLanguage = (filename) => {
     const ext = filename.split(".").pop()?.toLowerCase()
     const languageMap = {
+      yml: "yaml",
+      yaml: "yaml",
+      rb: "ruby",
       js: "javascript",
       jsx: "javascript",
       ts: "typescript",
