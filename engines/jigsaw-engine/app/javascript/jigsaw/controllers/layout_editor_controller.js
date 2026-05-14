@@ -12,6 +12,10 @@ function deepClone(obj) {
 
 export default class extends Controller {
   static targets = ["preview", "cssOutput", "htmlOutput", "jsonOutput", "configHidden", "panel"]
+  static values = {
+    slotsByArea:     { type: Object, default: {} },
+    slotEditPaths:   { type: Object, default: {} }
+  }
 
   connect() {
     this._loadConfig()
@@ -310,6 +314,31 @@ export default class extends Controller {
           this.renameArea(name, e.target.value)
         })
         inner.appendChild(input)
+
+        // Slot edit pencil button (opens flyout with slot editor)
+        const slotEditPath = this.slotEditPathsValue?.[name]
+        if (slotEditPath) {
+          const editBtn = document.createElement("button")
+          editBtn.type = "button"
+          editBtn.className = "slot-edit-btn"
+          editBtn.title = "Edit slot content"
+          editBtn.innerHTML = '<i class="pencil icon"></i>'
+          editBtn.addEventListener("click", (e) => {
+            e.stopPropagation()
+            const flyout = document.querySelector(".ui.flyout")
+            const editorFrame = document.querySelector("#editor")
+            if (editorFrame) editorFrame.src = slotEditPath
+            if (flyout && window.jQuery) window.jQuery(flyout).flyout("show")
+          })
+          inner.appendChild(editBtn)
+        } else {
+          // No slot exists yet (newly added area - user must save first)
+          const placeholder = document.createElement("div")
+          placeholder.className = "slot-edit-btn slot-edit-btn-disabled"
+          placeholder.title = "Save layout to enable slot editing"
+          placeholder.innerHTML = '<i class="pencil icon"></i>'
+          inner.appendChild(placeholder)
+        }
 
         cell.addEventListener("click", (e) => {
           if (e.target === input) return

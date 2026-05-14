@@ -17,22 +17,33 @@ module Jigsaw
       @layout = Layout.new(layout_params)
       if @layout.save
         @layout.sync_slots
-        redirect_to edit_layout_path(@layout), notice: "Layout created"
+        redirect_to layout_redirect_target, notice: "Layout created"
       else
         render :new, status: :unprocessable_entity
       end
     end
 
     def edit
-      @layout.sync_slots if @layout.persisted?
+      # Layout editing now happens via the page builder.
+      if @layout.page
+        redirect_to edit_page_path(@layout.page)
+      else
+        redirect_to layouts_path, alert: "Layout has no associated page"
+      end
     end
 
     def update
       if @layout.update(layout_params)
         @layout.sync_slots
-        redirect_to edit_layout_path(@layout), notice: "Layout updated"
+        redirect_to layout_redirect_target, notice: "Layout updated"
       else
-        render :edit, status: :unprocessable_entity
+        if @layout.page
+          @page = @layout.page
+          @slots = @layout.slots.order(:position)
+          render "jigsaw/pages/edit", status: :unprocessable_entity
+        else
+          render :edit, status: :unprocessable_entity
+        end
       end
     end
 
@@ -49,6 +60,10 @@ module Jigsaw
 
       def layout_params
         params.require(:layout).permit(:name, :config)
+      end
+
+      def layout_redirect_target
+        @layout.page ? edit_page_path(@layout.page) : layouts_path
       end
 
       def default_grid_config

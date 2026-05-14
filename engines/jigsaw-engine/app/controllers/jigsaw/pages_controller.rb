@@ -7,6 +7,8 @@ module Jigsaw
     end
 
     def edit
+      @layout.sync_slots if @layout
+      @slots = @layout&.slots&.order(:position) || []
     end
 
     def update
@@ -28,7 +30,6 @@ module Jigsaw
       def set_page
         @page = Page.find(params[:id])
         @layout = @page.layout
-        @slots = @layout.slots.order(:position)
       end
 
       def page_params

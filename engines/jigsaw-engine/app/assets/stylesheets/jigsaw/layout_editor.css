@@ -283,6 +283,50 @@ html, body {
   color: #000;
 }
 
+.slot-edit-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 4;
+  padding: 0;
+  font-size: 12px;
+  color: #444;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: background 0.1s, color 0.1s;
+}
+
+.slot-edit-btn:hover {
+  background: #4183c4;
+  color: #fff;
+  border-color: #4183c4;
+}
+
+.slot-edit-btn-disabled {
+  background: #eee;
+  color: #bbb;
+  cursor: not-allowed;
+  border-color: #ddd;
+}
+
+.slot-edit-btn-disabled:hover {
+  background: #eee;
+  color: #bbb;
+  border-color: #ddd;
+}
+
+.slot-edit-btn .icon {
+  margin: 0 !important;
+}
+
 .grid-action-btn.track-remove,
 .grid-action-btn.track-insert {
   position: static;
