@@ -7,9 +7,21 @@ module Jigsaw
     validates :area_name, presence: true, uniqueness: { scope: :layout_id }
 
     after_initialize :set_default_sources
-    before_save :compile_sources
+    before_save :normalize_config, :compile_sources
 
     private
+
+      def normalize_config
+        self.config = {} if config.nil?
+        if config.is_a?(String)
+          parsed = begin
+            JSON.parse(config)
+          rescue JSON::ParserError
+            {}
+          end
+          self.config = parsed
+        end
+      end
 
       def set_default_sources
         if data_source.blank?

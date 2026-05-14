@@ -1,9 +1,9 @@
 Wrapper(data: { controller: "custom-page", "custom-page-page-id-value": @page.id }) {
   Style(@layout.compiled_css)
 
-  Wrapper(class: "jigsaw-layout-#{@layout.id}") {
+  Div(class: "jigsaw-layout-#{@layout.id}") {
     @slots.each do |slot|
-      Wrapper(class: slot.area_name) {
+      Div(class: slot.area_name) {
         CustomModule(
           module_id:           slot.id,
           edit_url:            edit_slot_path(slot),
